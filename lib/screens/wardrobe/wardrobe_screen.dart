@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../models/clothing_item.dart';
 import '../../providers/wardrobe_provider.dart';
 import 'add_clothing_screen.dart';
+import 'clothing_details_screen.dart';
 
 class WardrobeScreen extends StatefulWidget {
   final WardrobeProvider wardrobeProvider;
