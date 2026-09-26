@@ -447,15 +447,20 @@ class _WardrobeScreenState
 class _ClothingCard extends StatelessWidget {
   final ClothingItem item;
   final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   const _ClothingCard({
     required this.item,
     required this.onDelete,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+        onTap: onTap,
+
+        child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
 
@@ -604,6 +609,7 @@ class _ClothingCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
