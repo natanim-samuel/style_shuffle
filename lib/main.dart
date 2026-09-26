@@ -77,8 +77,10 @@ class _MainNavigationScreenState
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const HomeScreen(),
-
+      HomeScreen(
+        wardrobeProvider:
+        widget.wardrobeProvider,
+      ),
       WardrobeScreen(
         wardrobeProvider:
         widget.wardrobeProvider,
