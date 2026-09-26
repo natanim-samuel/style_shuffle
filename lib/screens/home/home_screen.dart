@@ -96,7 +96,18 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              OutfitGeneratorScreen(
+                                wardrobeProvider:
+                                wardrobeProvider,
+                              ),
+                        ),
+                      );
+                    },
 
                     icon: const Icon(Icons.shuffle),
 
@@ -138,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.checkroom_outlined,
-                    number: '0',
+                    number: wardrobeProvider.itemCount.toString(),
                     label: 'Clothes',
                   ),
                 ),
@@ -148,7 +159,7 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.favorite_outline,
-                    number: '0',
+                    number: wardrobeProvider.itemCount.toString(),
                     label: 'Favorites',
                   ),
                 ),
