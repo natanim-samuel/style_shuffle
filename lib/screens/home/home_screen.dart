@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import '../generator/outfit_generator_screen.dart';
+import '../../providers/wardrobe_provider.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final WardrobeProvider wardrobeProvider;
+
+  const HomeScreen({
+    super.key,
+    required this.wardrobeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
