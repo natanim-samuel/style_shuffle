@@ -434,10 +434,10 @@ class _OutfitItemCard extends StatelessWidget {
                 left: Radius.circular(20),
               ),
 
-              child: Image.asset(
-                item.imagePath!,
+              child:Image.file(
+                File(item.imagePath!),
                 fit: BoxFit.cover,
-              ),
+              )
             )
                 : const Icon(
               Icons.checkroom_outlined,
