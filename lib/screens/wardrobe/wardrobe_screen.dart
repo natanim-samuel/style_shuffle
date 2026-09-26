@@ -284,6 +284,19 @@ class _WardrobeScreenState
                       clothes[index],
                     );
                   },
+
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ClothingDetailsScreen(
+                          item: clothes[index],
+                          wardrobeProvider:
+                          widget.wardrobeProvider,
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
