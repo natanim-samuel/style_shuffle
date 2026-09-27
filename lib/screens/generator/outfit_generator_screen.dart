@@ -25,37 +25,37 @@ class _OutfitGeneratorScreenState
 extends State<OutfitGeneratorScreen> {
 final Random _random = Random();
 
-ClothingItem? _top;
-ClothingItem? _bottom;
-ClothingItem? _shoes;
-ClothingItem? _outerwear;
-ClothingItem? _accessory;
+// Currently selected outfit items.
+ClothingItem? _selectedTop;
+ClothingItem? _selectedBottom;
+ClothingItem? _selectedShoes;
+ClothingItem? _selectedOuterwear;
+ClothingItem? _selectedAccessory;
 
 bool _hasGenerated = false;
 
+// ------------------------------------------------------------
+// WARDROBE LISTS
+// ------------------------------------------------------------
+
 List<ClothingItem> get _tops {
-return widget.wardrobeProvider
-    .getByCategory('Tops');
+return widget.wardrobeProvider.getByCategory('Tops');
 }
 
-List<ClothingItem> get _bottoms {
-return widget.wardrobeProvider
-    .getByCategory('Bottoms');
+List<ClothingItem> get _bottomItems {
+return widget.wardrobeProvider.getByCategory('Bottoms');
 }
 
 List<ClothingItem> get _shoeItems {
-return widget.wardrobeProvider
-    .getByCategory('Shoes');
+return widget.wardrobeProvider.getByCategory('Shoes');
 }
 
-List<ClothingItem> get _outerwear {
-return widget.wardrobeProvider
-    .getByCategory('Outerwear');
+List<ClothingItem> get _outerwearItems {
+return widget.wardrobeProvider.getByCategory('Outerwear');
 }
 
-List<ClothingItem> get _accessories {
-return widget.wardrobeProvider
-    .getByCategory('Accessories');
+List<ClothingItem> get _accessoryItems {
+return widget.wardrobeProvider.getByCategory('Accessories');
 }
 
 @override
@@ -73,8 +73,8 @@ _generateSmartOutfit();
 
 void _generateSmartOutfit() {
 if (_tops.isEmpty ||
-_bottoms.isEmpty ||
-_shoes.isEmpty) {
+_bottomItems.isEmpty ||
+_shoeItems.isEmpty) {
 setState(() {
 _hasGenerated = false;
 });
@@ -82,14 +82,15 @@ return;
 }
 
 ClothingItem bestTop = _tops.first;
-ClothingItem bestBottom = _bottoms.first;
-ClothingItem bestShoes = _shoes.first;
+ClothingItem bestBottom = _bottomItems.first;
+ClothingItem bestShoes = _shoeItems.first;
 
 int bestScore = -1;
 
+// Check every possible top + bottom + shoes combination.
 for (final top in _tops) {
-for (final bottom in _bottoms) {
-for (final shoes in _shoes) {
+for (final bottom in _bottomItems) {
+for (final shoes in _shoeItems) {
 final score = _calculateOutfitScore(
 top: top,
 bottom: bottom,
@@ -107,22 +108,21 @@ bestShoes = shoes;
 }
 
 ClothingItem? selectedOuterwear;
-ClothingItem? selectedAccessory;
 
-if (_outerwear.isNotEmpty) {
-selectedOuterwear =
-_findBestAdditionalItem(
-_outerwear,
+if (_outerwearItems.isNotEmpty) {
+selectedOuterwear = _findBestAdditionalItem(
+_outerwearItems,
 bestTop,
 bestBottom,
 bestShoes,
 );
 }
 
-if (_accessories.isNotEmpty) {
-selectedAccessory =
-_findBestAdditionalItem(
-_accessories,
+ClothingItem? selectedAccessory;
+
+if (_accessoryItems.isNotEmpty) {
+selectedAccessory = _findBestAdditionalItem(
+_accessoryItems,
 bestTop,
 bestBottom,
 bestShoes,
@@ -130,16 +130,18 @@ bestShoes,
 }
 
 setState(() {
-_top = bestTop;
-_bottom = bestBottom;
-_shoes = _shoes;
-_shoes = bestShoes;
-_outerwear = _outerwear;
-_accessory = selectedAccessory;
-_outerwear = _outerwear;
+_selectedTop = bestTop;
+_selectedBottom = bestBottom;
+_selectedShoes = bestShoes;
+_selectedOuterwear = selectedOuterwear;
+_selectedAccessory = selectedAccessory;
 _hasGenerated = true;
 });
 }
+
+// ------------------------------------------------------------
+// OUTFIT SCORE
+// ------------------------------------------------------------
 
 int _calculateOutfitScore({
 required ClothingItem top,
@@ -148,10 +150,7 @@ required ClothingItem shoes,
 }) {
 int score = 0;
 
-// ----------------------------------------------------------
-// COLOR MATCHING
-// ----------------------------------------------------------
-
+// Color matching.
 score += _colorCompatibility(
 top.color,
 bottom.color,
@@ -167,10 +166,7 @@ bottom.color,
 shoes.color,
 );
 
-// ----------------------------------------------------------
-// STYLE MATCHING
-// ----------------------------------------------------------
-
+// Style matching.
 if (top.style == bottom.style) {
 score += 20;
 } else if (_stylesCompatible(
@@ -189,10 +185,7 @@ top.style,
 score += 8;
 }
 
-// ----------------------------------------------------------
-// SEASON MATCHING
-// ----------------------------------------------------------
-
+// Season matching.
 if (top.season == bottom.season) {
 score += 10;
 }
@@ -204,6 +197,10 @@ score += 5;
 return score;
 }
 
+// ------------------------------------------------------------
+// COLOR COMPATIBILITY
+// ------------------------------------------------------------
+
 int _colorCompatibility(
 String color1,
 String color2,
@@ -211,11 +208,12 @@ String color2,
 final a = color1.toLowerCase();
 final b = color2.toLowerCase();
 
+// Same color.
 if (a == b) {
 return 8;
 }
 
-// Neutrals work with almost everything.
+// Neutral colors work with almost everything.
 const neutrals = [
 'black',
 'white',
@@ -229,7 +227,7 @@ neutrals.contains(b)) {
 return 10;
 }
 
-// Common complementary combinations.
+// Common combinations.
 final combinations = <String>{
 'blue_white',
 'white_blue',
@@ -264,6 +262,7 @@ if (_sameColorFamily(a, b)) {
 return 7;
 }
 
+// Different colors with less compatibility.
 return 2;
 }
 
@@ -297,6 +296,10 @@ return true;
 return false;
 }
 
+// ------------------------------------------------------------
+// STYLE COMPATIBILITY
+// ------------------------------------------------------------
+
 bool _stylesCompatible(
 String style1,
 String style2,
@@ -326,6 +329,10 @@ return true;
 
 return false;
 }
+
+// ------------------------------------------------------------
+// ADDITIONAL ITEMS
+// ------------------------------------------------------------
 
 ClothingItem? _findBestAdditionalItem(
 List<ClothingItem> items,
@@ -372,39 +379,60 @@ return best;
 }
 
 // ------------------------------------------------------------
-// INDIVIDUAL SHUFFLING
+// INDIVIDUAL SHUFFLE
 // ------------------------------------------------------------
 
 void _shuffleTop() {
 if (_tops.isEmpty) return;
 
 setState(() {
-_top = _getRandomDifferent(
+_selectedTop = _getRandomDifferent(
 _tops,
-_top,
+_selectedTop,
 );
 });
 }
 
 void _shuffleBottom() {
-if (_bottoms.isEmpty) return;
+if (_bottomItems.isEmpty) return;
 
 setState(() {
-_bottom = _getRandomDifferent(
-_bottoms,
-_bottom,
+_selectedBottom = _getRandomDifferent(
+_bottomItems,
+_selectedBottom,
 );
 });
 }
 
 void _shuffleShoes() {
-if (_shoes.isEmpty) return;
+if (_shoeItems.isEmpty) return;
 
 setState(() {
-_shoes = _shoes;
-_shoes = _getRandomDifferent(
-_shoes,
-_shoes,
+_selectedShoes = _getRandomDifferent(
+_shoeItems,
+_selectedShoes,
+);
+});
+}
+
+void _shuffleOuterwear() {
+if (_outerwearItems.isEmpty) return;
+
+setState(() {
+_selectedOuterwear = _getRandomDifferent(
+_outerwearItems,
+_selectedOuterwear,
+);
+});
+}
+
+void _shuffleAccessory() {
+if (_accessoryItems.isEmpty) return;
+
+setState(() {
+_selectedAccessory = _getRandomDifferent(
+_accessoryItems,
+_selectedAccessory,
 );
 });
 }
@@ -418,24 +446,25 @@ return items.first;
 }
 
 final available = items
-    .where((item) => item.id != current?.id)
+    .where(
+(item) => item.id != current?.id,
+)
     .toList();
 
 return available[
-_random.nextInt(available.length)
-];
+_random.nextInt(available.length)];
 }
 
 // ------------------------------------------------------------
-// UI
+// MAIN BUILD
 // ------------------------------------------------------------
 
 @override
 Widget build(BuildContext context) {
 final hasEnoughClothes =
 _tops.isNotEmpty &&
-_bottoms.isNotEmpty &&
-_shoes.isNotEmpty;
+_bottomItems.isNotEmpty &&
+_shoeItems.isNotEmpty;
 
 return Scaffold(
 appBar: AppBar(
@@ -450,6 +479,10 @@ child: CircularProgressIndicator(),
     : _buildGenerator(),
 );
 }
+
+// ------------------------------------------------------------
+// NOT ENOUGH CLOTHES
+// ------------------------------------------------------------
 
 Widget _buildNotEnoughClothes() {
 return Center(
@@ -484,7 +517,7 @@ color: AppTheme.darkText,
 ),
 ),
 const SizedBox(height: 12),
-Text(
+const Text(
 'Add at least one top, one bottom, and one pair of shoes to generate an outfit.',
 textAlign: TextAlign.center,
 style: TextStyle(
@@ -497,6 +530,10 @@ color: AppTheme.grayText,
 ),
 );
 }
+
+// ------------------------------------------------------------
+// GENERATOR UI
+// ------------------------------------------------------------
 
 Widget _buildGenerator() {
 return SingleChildScrollView(
@@ -528,68 +565,54 @@ color: AppTheme.grayText,
 ),
 const SizedBox(height: 24),
 
+// TOP
 _buildItemSection(
 label: 'Top',
-item: _top!,
+item: _selectedTop!,
 onShuffle: _shuffleTop,
 ),
 
 const SizedBox(height: 14),
 
+// BOTTOM
 _buildItemSection(
 label: 'Bottom',
-item: _bottom!,
+item: _selectedBottom!,
 onShuffle: _shuffleBottom,
 ),
 
 const SizedBox(height: 14),
 
+// SHOES
 _buildItemSection(
 label: 'Shoes',
-item: _shoes!,
+item: _selectedShoes!,
 onShuffle: _shuffleShoes,
 ),
 
-if (_outerwear != null) ...[
+// OUTERWEAR
+if (_selectedOuterwear != null) ...[
 const SizedBox(height: 14),
 _buildItemSection(
 label: 'Outerwear',
-item: _outerwear!,
-onShuffle: () {
-if (_outerwear!.isNotEmpty) {
-setState(() {
-_outerwear =
-_getRandomDifferent(
-_outerwear,
-_outerwear,
-);
-});
-}
-},
+item: _selectedOuterwear!,
+onShuffle: _shuffleOuterwear,
 ),
 ],
 
-if (_accessory != null) ...[
+// ACCESSORY
+if (_selectedAccessory != null) ...[
 const SizedBox(height: 14),
 _buildItemSection(
 label: 'Accessory',
-item: _accessory!,
-onShuffle: () {
-if (_accessories.isNotEmpty) {
-setState(() {
-_accessory =
-_getRandomDifferent(
-_accessories,
-_accessory,
-);
-});
-}
-},
+item: _selectedAccessory!,
+onShuffle: _shuffleAccessory,
 ),
 ],
 
 const SizedBox(height: 28),
 
+// ACTION BUTTONS
 Row(
 children: [
 Expanded(
@@ -662,6 +685,10 @@ BorderRadius.circular(16),
 ),
 );
 }
+
+// ------------------------------------------------------------
+// ITEM CARD
+// ------------------------------------------------------------
 
 Widget _buildItemSection({
 required String label,
@@ -759,6 +786,10 @@ const SizedBox(width: 12),
 );
 }
 
+// ------------------------------------------------------------
+// IMAGE
+// ------------------------------------------------------------
+
 Widget _buildImage(ClothingItem item) {
 return ClipRRect(
 borderRadius: const BorderRadius.only(
@@ -782,6 +813,10 @@ return _buildPlaceholder(item);
 );
 }
 
+// ------------------------------------------------------------
+// IMAGE PLACEHOLDER
+// ------------------------------------------------------------
+
 Widget _buildPlaceholder(
 ClothingItem item,
 ) {
@@ -795,20 +830,29 @@ color: AppTheme.brown,
 );
 }
 
+// ------------------------------------------------------------
+// CATEGORY ICON
+// ------------------------------------------------------------
+
 IconData _categoryIcon(
 String category,
 ) {
 switch (category) {
 case 'Tops':
 return Icons.checkroom_outlined;
+
 case 'Bottoms':
 return Icons.accessibility_new;
+
 case 'Shoes':
 return Icons.directions_walk_outlined;
+
 case 'Outerwear':
 return Icons.dry_cleaning_outlined;
+
 case 'Accessories':
 return Icons.watch_outlined;
+
 default:
 return Icons.checkroom_outlined;
 }
