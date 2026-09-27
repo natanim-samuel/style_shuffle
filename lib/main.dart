@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import 'providers/favorites_provider.dart';
@@ -10,197 +9,187 @@ import 'screens/wardrobe/wardrobe_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-runApp(const StyleShuffleApp());
+  runApp(const StyleShuffleApp());
 }
 
 class StyleShuffleApp extends StatefulWidget {
-const StyleShuffleApp({super.key});
+  const StyleShuffleApp({super.key});
 
-@override
-State<StyleShuffleApp> createState() =>
-_StyleShuffleAppState();
+  @override
+  State<StyleShuffleApp> createState() => _StyleShuffleAppState();
 }
 
-class _StyleShuffleAppState
-extends State<StyleShuffleApp> {
-late final WardrobeProvider wardrobeProvider;
-late final FavoritesProvider favoritesProvider;
+class _StyleShuffleAppState extends State<StyleShuffleApp> {
+  late final WardrobeProvider wardrobeProvider;
+  late final FavoritesProvider favoritesProvider;
 
-@override
-void initState() {
-super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-wardrobeProvider = WardrobeProvider();
-favoritesProvider = FavoritesProvider();
+    wardrobeProvider = WardrobeProvider();
+    favoritesProvider = FavoritesProvider();
 
-_loadData();
-}
+    _loadData();
+  }
 
-Future<void> _loadData() async {
-await wardrobeProvider.loadItems();
-await favoritesProvider.loadFavorites();
-}
+  Future<void> _loadData() async {
+    await wardrobeProvider.loadItems();
+    await favoritesProvider.loadFavorites();
+  }
 
-@override
-void dispose() {
-wardrobeProvider.dispose();
-favoritesProvider.dispose();
-super.dispose();
-}
+  @override
+  void dispose() {
+    wardrobeProvider.dispose();
+    favoritesProvider.dispose();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
-return MaterialApp(
-debugShowCheckedModeBanner: false,
-title: 'StyleShuffle',
-theme: AppTheme.lightTheme,
-home: MainNavigationScreen(
-wardrobeProvider: wardrobeProvider,
-favoritesProvider: favoritesProvider,
-),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'StyleShuffle',
+      theme: AppTheme.lightTheme,
+      home: MainNavigationScreen(
+        wardrobeProvider: wardrobeProvider,
+        favoritesProvider: favoritesProvider,
+      ),
+    );
+  }
 }
 
 class MainNavigationScreen extends StatefulWidget {
-final WardrobeProvider wardrobeProvider;
-final FavoritesProvider favoritesProvider;
+  final WardrobeProvider wardrobeProvider;
+  final FavoritesProvider favoritesProvider;
 
-const MainNavigationScreen({
-super.key,
-required this.wardrobeProvider,
-required this.favoritesProvider,
-});
+  const MainNavigationScreen({
+    super.key,
+    required this.wardrobeProvider,
+    required this.favoritesProvider,
+  });
 
-@override
-State<MainNavigationScreen> createState() =>
-_MainNavigationScreenState();
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState
-extends State<MainNavigationScreen> {
-int _currentIndex = 0;
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
 
-@override
-Widget build(BuildContext context) {
-final screens = [
-HomeScreen(
-wardrobeProvider: widget.wardrobeProvider,
-),
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(
+        wardrobeProvider: widget.wardrobeProvider,
+      ),
 
-WardrobeScreen(
-wardrobeProvider: widget.wardrobeProvider,
-),
+      WardrobeScreen(
+        wardrobeProvider: widget.wardrobeProvider,
+      ),
 
-FavoritesScreen(
-favoritesProvider: widget.favoritesProvider,
-),
+      FavoritesScreen(
+        favoritesProvider: widget.favoritesProvider,
+      ),
 
-const PlannerScreen(),
-];
+      const PlannerScreen(),
+    ];
 
-return Scaffold(
-body: IndexedStack(
-index: _currentIndex,
-children: screens,
-),
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
+      ),
 
-bottomNavigationBar: NavigationBar(
-selectedIndex: _currentIndex,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
 
-onDestinationSelected: (index) {
-setState(() {
-_currentIndex = index;
-});
-},
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(
+              Icons.home_outlined,
+            ),
+            selectedIcon: Icon(
+              Icons.home,
+            ),
+            label: 'Home',
+          ),
 
-destinations: [
-const NavigationDestination(
-icon: Icon(
-Icons.home_outlined,
-),
-selectedIcon: Icon(
-Icons.home,
-),
-label: 'Home',
-),
+          const NavigationDestination(
+            icon: Icon(
+              Icons.checkroom_outlined,
+            ),
+            selectedIcon: Icon(
+              Icons.checkroom,
+            ),
+            label: 'Wardrobe',
+          ),
 
-const NavigationDestination(
-icon: Icon(
-Icons.checkroom_outlined,
-),
-selectedIcon: Icon(
-Icons.checkroom,
-),
-label: 'Wardrobe',
-),
+          NavigationDestination(
+            icon: _favoriteIcon(false),
+            selectedIcon: _favoriteIcon(true),
+            label: 'Favorites',
+          ),
 
-NavigationDestination(
-icon: _favoriteIcon(false),
-selectedIcon: _favoriteIcon(true),
-label: 'Favorites',
-),
+          const NavigationDestination(
+            icon: Icon(
+              Icons.calendar_month_outlined,
+            ),
+            selectedIcon: Icon(
+              Icons.calendar_month,
+            ),
+            label: 'Planner',
+          ),
+        ],
+      ),
+    );
+  }
 
-const NavigationDestination(
-icon: Icon(
-Icons.calendar_month_outlined,
-),
-selectedIcon: Icon(
-Icons.calendar_month,
-),
-label: 'Planner',
-),
-],
-),
-);
-}
+  Widget _favoriteIcon(bool selected) {
+    return AnimatedBuilder(
+      animation: widget.favoritesProvider,
+      builder: (context, child) {
+        final count = widget.favoritesProvider.count;
 
-Widget _favoriteIcon(bool selected) {
-return AnimatedBuilder(
-animation: widget.favoritesProvider,
-builder: (context, child) {
-final count =
-widget.favoritesProvider.count;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              selected
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+            ),
 
-return Stack(
-clipBehavior: Clip.none,
-children: [
-Icon(
-selected
-? Icons.favorite
-    : Icons.favorite_border,
-),
-
-if (count > 0)
-Positioned(
-right: -9,
-top: -7,
-child: Container(
-padding:
-const EdgeInsets.symmetric(
-horizontal: 5,
-vertical: 2,
-),
-decoration: BoxDecoration(
-color: AppTheme.brown,
-borderRadius:
-BorderRadius.circular(10),
-),
-child: Text(
-count > 99
-? '99+'
-    : count.toString(),
-style: const TextStyle(
-color: Colors.white,
-fontSize: 9,
-fontWeight: FontWeight.bold,
-),
-),
-),
-),
-],
-);
-},
-);
-}
+            if (count > 0)
+              Positioned(
+                right: -9,
+                top: -7,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.brown,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    count > 99 ? '99+' : count.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 }
