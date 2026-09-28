@@ -76,9 +76,9 @@ class _OutfitGeneratorScreenState
     ].whereType<ClothingItem>().toList();
   }
 
-  // ------------------------------------------------------------
+  // ============================================================
   // COLOR MATCHING
-  // ------------------------------------------------------------
+  // ============================================================
 
   int _colorCompatibility(
       String first,
@@ -253,9 +253,176 @@ class _OutfitGeneratorScreenState
     return const Color(0xFF9A4C4C);
   }
 
-  // ------------------------------------------------------------
-  // SMART SHUFFLE
-  // ------------------------------------------------------------
+  // ============================================================
+  // STYLE MATCHING
+  // ============================================================
+
+  int _styleCompatibility(
+      String first,
+      String second,
+      ) {
+    final a = first.toLowerCase().trim();
+    final b = second.toLowerCase().trim();
+
+    if (a == b) {
+      return 100;
+    }
+
+    final casualStyles = [
+      'casual',
+      'smart casual',
+    ];
+
+    final formalStyles = [
+      'formal',
+      'smart casual',
+    ];
+
+    final streetStyles = [
+      'streetwear',
+      'casual',
+    ];
+
+    final sportStyles = [
+      'sport',
+      'casual',
+    ];
+
+    if (casualStyles.contains(a) &&
+        casualStyles.contains(b)) {
+      return 90;
+    }
+
+    if (formalStyles.contains(a) &&
+        formalStyles.contains(b)) {
+      return 90;
+    }
+
+    if (streetStyles.contains(a) &&
+        streetStyles.contains(b)) {
+      return 88;
+    }
+
+    if (sportStyles.contains(a) &&
+        sportStyles.contains(b)) {
+      return 85;
+    }
+
+    if ((a == 'formal' &&
+        b == 'smart casual') ||
+        (a == 'smart casual' &&
+            b == 'formal')) {
+      return 85;
+    }
+
+    if ((a == 'streetwear' &&
+        b == 'sport') ||
+        (a == 'sport' &&
+            b == 'streetwear')) {
+      return 85;
+    }
+
+    if ((a == 'streetwear' &&
+        b == 'smart casual') ||
+        (a == 'smart casual' &&
+            b == 'streetwear')) {
+      return 65;
+    }
+
+    if ((a == 'formal' &&
+        b == 'streetwear') ||
+        (a == 'streetwear' &&
+            b == 'formal')) {
+      return 45;
+    }
+
+    if ((a == 'formal' &&
+        b == 'sport') ||
+        (a == 'sport' &&
+            b == 'formal')) {
+      return 40;
+    }
+
+    return 60;
+  }
+
+  int _calculateStyleScore() {
+    final items = _selectedItems;
+
+    if (items.length < 2) {
+      return 0;
+    }
+
+    int total = 0;
+    int comparisons = 0;
+
+    for (int i = 0; i < items.length; i++) {
+      for (int j = i + 1;
+      j < items.length;
+      j++) {
+        total += _styleCompatibility(
+          items[i].style,
+          items[j].style,
+        );
+
+        comparisons++;
+      }
+    }
+
+    if (comparisons == 0) {
+      return 0;
+    }
+
+    return (total / comparisons).round();
+  }
+
+  String _styleMatchText(int score) {
+    if (score >= 90) {
+      return 'Excellent style match ✨';
+    }
+
+    if (score >= 80) {
+      return 'Great style combination';
+    }
+
+    if (score >= 70) {
+      return 'Good style combination';
+    }
+
+    if (score >= 60) {
+      return 'Mixed style combination';
+    }
+
+    return 'Styles may clash';
+  }
+
+  Color _styleMatchBackground(int score) {
+    if (score >= 80) {
+      return const Color(0xFFE7F3E8);
+    }
+
+    if (score >= 65) {
+      return const Color(0xFFFFF3D9);
+    }
+
+    return const Color(0xFFF8E3E3);
+  }
+
+  Color _styleMatchTextColor(int score) {
+    if (score >= 80) {
+      return const Color(0xFF47734A);
+    }
+
+    if (score >= 65) {
+      return const Color(0xFF8A651B);
+    }
+
+    return const Color(0xFF9A4C4C);
+  }
+
+  // ============================================================
+  // SMART OUTFIT GENERATION
+  // ============================================================
 
   ClothingItem? _bestMatchingItem(
       List<ClothingItem> items,
@@ -270,7 +437,7 @@ class _OutfitGeneratorScreenState
     }
 
     ClothingItem? bestItem;
-    int bestScore = -1;
+    double bestScore = -1;
 
     for (final candidate in items) {
       if (alreadySelected.any(
@@ -280,26 +447,41 @@ class _OutfitGeneratorScreenState
       }
 
       if (alreadySelected.isEmpty) {
-        if (_random.nextBool()) {
+        if (bestItem == null ||
+            _random.nextBool()) {
           bestItem = candidate;
         }
+
         continue;
       }
 
-      int totalScore = 0;
+      int totalColor = 0;
+      int totalStyle = 0;
 
       for (final selected in alreadySelected) {
-        totalScore += _colorCompatibility(
+        totalColor += _colorCompatibility(
           candidate.color,
           selected.color,
         );
+
+        totalStyle += _styleCompatibility(
+          candidate.style,
+          selected.style,
+        );
       }
 
-      final averageScore =
-          totalScore ~/ alreadySelected.length;
+      final colorScore =
+          totalColor / alreadySelected.length;
 
-      if (averageScore > bestScore) {
-        bestScore = averageScore;
+      final styleScore =
+          totalStyle / alreadySelected.length;
+
+      final combinedScore =
+          (colorScore * 0.5) +
+              (styleScore * 0.5);
+
+      if (combinedScore > bestScore) {
+        bestScore = combinedScore;
         bestItem = candidate;
       }
     }
@@ -362,9 +544,9 @@ class _OutfitGeneratorScreenState
     });
   }
 
-  // ------------------------------------------------------------
-  // INDIVIDUAL SHUFFLES
-  // ------------------------------------------------------------
+  // ============================================================
+  // INDIVIDUAL SHUFFLE
+  // ============================================================
 
   ClothingItem? _randomItem(
       List<ClothingItem> items, {
@@ -391,6 +573,69 @@ class _OutfitGeneratorScreenState
     return available[
     _random.nextInt(available.length)
     ];
+  }
+
+  ClothingItem? _findBestReplacement(
+      List<ClothingItem> candidates,
+      ClothingItem? current,
+      ) {
+    final otherItems = _selectedItems
+        .where(
+          (item) => item.id != current?.id,
+    )
+        .toList();
+
+    if (otherItems.isEmpty) {
+      return _randomItem(
+        candidates,
+        current: current,
+      );
+    }
+
+    ClothingItem? bestItem;
+    double bestScore = -1;
+
+    for (final candidate in candidates) {
+      if (candidate.id == current?.id) {
+        continue;
+      }
+
+      int totalColor = 0;
+      int totalStyle = 0;
+
+      for (final item in otherItems) {
+        totalColor += _colorCompatibility(
+          candidate.color,
+          item.color,
+        );
+
+        totalStyle += _styleCompatibility(
+          candidate.style,
+          item.style,
+        );
+      }
+
+      final colorScore =
+          totalColor / otherItems.length;
+
+      final styleScore =
+          totalStyle / otherItems.length;
+
+      final combinedScore =
+          (colorScore * 0.5) +
+              (styleScore * 0.5);
+
+      if (combinedScore > bestScore) {
+        bestScore = combinedScore;
+        bestItem = candidate;
+      }
+    }
+
+    return bestItem ??
+        _randomItem(
+          candidates,
+          current: current,
+        );
   }
 
   void _shuffleTop() {
@@ -450,10 +695,11 @@ class _OutfitGeneratorScreenState
     }
 
     setState(() {
-      _selectedOuterwear = _findBestReplacement(
-        _outerwear,
-        _selectedOuterwear,
-      );
+      _selectedOuterwear =
+          _findBestReplacement(
+            _outerwear,
+            _selectedOuterwear,
+          );
     });
   }
 
@@ -466,66 +712,17 @@ class _OutfitGeneratorScreenState
     }
 
     setState(() {
-      _selectedAccessory = _findBestReplacement(
-        _accessories,
-        _selectedAccessory,
-      );
+      _selectedAccessory =
+          _findBestReplacement(
+            _accessories,
+            _selectedAccessory,
+          );
     });
   }
 
-  ClothingItem? _findBestReplacement(
-      List<ClothingItem> candidates,
-      ClothingItem? current,
-      ) {
-    final otherItems = _selectedItems
-        .where(
-          (item) => item.id != current?.id,
-    )
-        .toList();
-
-    if (otherItems.isEmpty) {
-      return _randomItem(
-        candidates,
-        current: current,
-      );
-    }
-
-    ClothingItem? bestItem;
-    int bestScore = -1;
-
-    for (final candidate in candidates) {
-      if (candidate.id == current?.id) {
-        continue;
-      }
-
-      int total = 0;
-
-      for (final item in otherItems) {
-        total += _colorCompatibility(
-          candidate.color,
-          item.color,
-        );
-      }
-
-      final score =
-          total ~/ otherItems.length;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestItem = candidate;
-      }
-    }
-
-    return bestItem ??
-        _randomItem(
-          candidates,
-          current: current,
-        );
-  }
-
-  // ------------------------------------------------------------
+  // ============================================================
   // SAVE
-  // ------------------------------------------------------------
+  // ============================================================
 
   Future<void> _saveOutfit() async {
     if (_selectedTop == null ||
@@ -582,9 +779,9 @@ class _OutfitGeneratorScreenState
     );
   }
 
-  // ------------------------------------------------------------
+  // ============================================================
   // BUILD
-  // ------------------------------------------------------------
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -621,6 +818,10 @@ class _OutfitGeneratorScreenState
             const SizedBox(height: 14),
 
             _buildColorMatchCard(),
+
+            const SizedBox(height: 12),
+
+            _buildStyleMatchCard(),
 
             const SizedBox(height: 22),
 
@@ -714,7 +915,7 @@ class _OutfitGeneratorScreenState
         const SizedBox(height: 6),
         Text(
           _hasGenerated
-              ? 'Your outfit is matched by color.'
+              ? 'Your outfit is matched by color and style.'
               : 'Let StyleShuffle pick an outfit for you.',
           style: const TextStyle(
             fontSize: 15,
@@ -732,7 +933,8 @@ class _OutfitGeneratorScreenState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius:
+        BorderRadius.circular(26),
         border: Border.all(
           color: AppTheme.lightBrown,
         ),
@@ -754,17 +956,19 @@ class _OutfitGeneratorScreenState
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
+                padding:
+                const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.lightBrown,
+                  color:
+                  AppTheme.lightBrown,
                   borderRadius:
                   BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  'COLOR MATCH',
+                  'SMART MATCH',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -789,7 +993,8 @@ class _OutfitGeneratorScreenState
               mainAxisSpacing: 12,
               childAspectRatio: 0.82,
             ),
-            itemBuilder: (context, index) {
+            itemBuilder:
+                (context, index) {
               return _buildPreviewItem(
                 items[index],
               );
@@ -812,7 +1017,8 @@ class _OutfitGeneratorScreenState
           color: AppTheme.lightBrown,
         ),
       ),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior:
+      Clip.antiAlias,
       child: Column(
         crossAxisAlignment:
         CrossAxisAlignment.start,
@@ -825,7 +1031,9 @@ class _OutfitGeneratorScreenState
                 File(item.imagePath!),
                 fit: BoxFit.cover,
                 errorBuilder:
-                    (context, error, stackTrace) {
+                    (context,
+                    error,
+                    stackTrace) {
                   return _buildImagePlaceholder();
                 },
               )
@@ -834,7 +1042,8 @@ class _OutfitGeneratorScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding:
+            const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment:
               CrossAxisAlignment.start,
@@ -846,8 +1055,10 @@ class _OutfitGeneratorScreenState
                   TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.darkText,
+                    fontWeight:
+                    FontWeight.w600,
+                    color:
+                    AppTheme.darkText,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -858,7 +1069,8 @@ class _OutfitGeneratorScreenState
                   TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: AppTheme.grayText,
+                    color:
+                    AppTheme.grayText,
                   ),
                 ),
               ],
@@ -883,36 +1095,24 @@ class _OutfitGeneratorScreenState
   }
 
   Widget _buildColorMatchCard() {
-    final score = _calculateColorScore();
+    final score =
+    _calculateColorScore();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding:
+      const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _colorMatchBackground(score),
+        color:
+        _colorMatchBackground(score),
         borderRadius:
         BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '$score',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color:
-                  _colorMatchTextColor(score),
-                ),
-              ),
-            ),
+          _buildScoreCircle(
+            score,
+            _colorMatchTextColor(score),
           ),
 
           const SizedBox(width: 14),
@@ -926,18 +1126,21 @@ class _OutfitGeneratorScreenState
                   _colorMatchText(score),
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                     color:
-                    _colorMatchTextColor(score),
+                    _colorMatchTextColor(
+                        score),
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Color compatibility score',
+                  'Color compatibility',
                   style: TextStyle(
                     fontSize: 12,
                     color:
-                    _colorMatchTextColor(score),
+                    _colorMatchTextColor(
+                        score),
                   ),
                 ),
               ],
@@ -949,6 +1152,93 @@ class _OutfitGeneratorScreenState
             color: AppTheme.brown,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStyleMatchCard() {
+    final score =
+    _calculateStyleScore();
+
+    return Container(
+      width: double.infinity,
+      padding:
+      const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color:
+        _styleMatchBackground(score),
+        borderRadius:
+        BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          _buildScoreCircle(
+            score,
+            _styleMatchTextColor(score),
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _styleMatchText(score),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight:
+                    FontWeight.bold,
+                    color:
+                    _styleMatchTextColor(
+                        score),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Style compatibility',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                    _styleMatchTextColor(
+                        score),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Icon(
+            Icons.auto_awesome_outlined,
+            color: AppTheme.brown,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreCircle(
+      int score,
+      Color textColor,
+      ) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          '$score',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight:
+            FontWeight.bold,
+            color: textColor,
+          ),
+        ),
       ),
     );
   }
@@ -966,16 +1256,19 @@ class _OutfitGeneratorScreenState
           'Shuffle Again',
           style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight:
+            FontWeight.bold,
           ),
         ),
-        style: ElevatedButton.styleFrom(
+        style:
+        ElevatedButton.styleFrom(
           backgroundColor:
           AppTheme.brown,
           foregroundColor:
           Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(
+          shape:
+          RoundedRectangleBorder(
             borderRadius:
             BorderRadius.circular(18),
           ),
@@ -990,13 +1283,15 @@ class _OutfitGeneratorScreenState
     required VoidCallback onShuffle,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding:
+      const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius:
         BorderRadius.circular(20),
         border: Border.all(
-          color: AppTheme.lightBrown,
+          color:
+          AppTheme.lightBrown,
         ),
       ),
       child: Row(
@@ -1014,7 +1309,8 @@ class _OutfitGeneratorScreenState
                   label,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppTheme.grayText,
+                    color:
+                    AppTheme.grayText,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1026,8 +1322,10 @@ class _OutfitGeneratorScreenState
                   TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.darkText,
+                    fontWeight:
+                    FontWeight.w600,
+                    color:
+                    AppTheme.darkText,
                   ),
                 ),
                 if (item != null) ...[
@@ -1037,7 +1335,8 @@ class _OutfitGeneratorScreenState
                     maxLines: 1,
                     overflow:
                     TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style:
+                    const TextStyle(
                       fontSize: 12,
                       color:
                       AppTheme.grayText,
@@ -1054,7 +1353,8 @@ class _OutfitGeneratorScreenState
             onPressed: onShuffle,
             tooltip:
             'Shuffle $label',
-            style: IconButton.styleFrom(
+            style:
+            IconButton.styleFrom(
               backgroundColor:
               AppTheme.lightBrown,
               foregroundColor:
@@ -1081,10 +1381,14 @@ class _OutfitGeneratorScreenState
         height: 64,
         child: item?.imagePath != null
             ? Image.file(
-          File(item!.imagePath!),
+          File(
+            item!.imagePath!,
+          ),
           fit: BoxFit.cover,
           errorBuilder:
-              (context, error, stackTrace) {
+              (context,
+              error,
+              stackTrace) {
             return _buildImagePlaceholder();
           },
         )
@@ -1120,16 +1424,19 @@ class _OutfitGeneratorScreenState
               : 'Save Outfit',
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight:
+            FontWeight.bold,
           ),
         ),
-        style: OutlinedButton.styleFrom(
+        style:
+        OutlinedButton.styleFrom(
           foregroundColor:
           AppTheme.brown,
           side: const BorderSide(
             color: AppTheme.brown,
           ),
-          shape: RoundedRectangleBorder(
+          shape:
+          RoundedRectangleBorder(
             borderRadius:
             BorderRadius.circular(18),
           ),
@@ -1155,7 +1462,8 @@ class _OutfitGeneratorScreenState
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(30),
+        padding:
+        const EdgeInsets.all(30),
         child: Column(
           mainAxisAlignment:
           MainAxisAlignment.center,
@@ -1163,23 +1471,30 @@ class _OutfitGeneratorScreenState
             Container(
               width: 90,
               height: 90,
-              decoration: BoxDecoration(
-                color: AppTheme.lightBrown,
+              decoration:
+              BoxDecoration(
+                color:
+                AppTheme.lightBrown,
                 borderRadius:
-                BorderRadius.circular(30),
+                BorderRadius.circular(
+                    30),
               ),
               child: const Icon(
                 Icons.checkroom_outlined,
                 size: 45,
-                color: AppTheme.brown,
+                color:
+                AppTheme.brown,
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(
+              height: 24,
+            ),
 
             const Text(
               'Your wardrobe needs a few more items',
-              textAlign: TextAlign.center,
+              textAlign:
+              TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight:
@@ -1189,11 +1504,14 @@ class _OutfitGeneratorScreenState
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(
+              height: 10,
+            ),
 
             Text(
               'Add at least ${missing.join(', ')} to generate an outfit.',
-              textAlign: TextAlign.center,
+              textAlign:
+              TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
                 color:
@@ -1201,11 +1519,15 @@ class _OutfitGeneratorScreenState
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(
+              height: 24,
+            ),
 
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(
+                  context,
+                );
               },
               style:
               ElevatedButton.styleFrom(
@@ -1217,7 +1539,8 @@ class _OutfitGeneratorScreenState
                 shape:
                 RoundedRectangleBorder(
                   borderRadius:
-                  BorderRadius.circular(16),
+                  BorderRadius.circular(
+                      16),
                 ),
               ),
               child: const Text(
