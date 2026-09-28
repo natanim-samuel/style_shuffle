@@ -4,15 +4,19 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../models/clothing_item.dart';
+import '../../models/favorite_outfit.dart';
+import '../../providers/favorites_provider.dart';
 import '../../providers/wardrobe_provider.dart';
 import '../../theme/app_theme.dart';
 
 class OutfitGeneratorScreen extends StatefulWidget {
   final WardrobeProvider wardrobeProvider;
+  final FavoritesProvider favoritesProvider;
 
   const OutfitGeneratorScreen({
     super.key,
     required this.wardrobeProvider,
+    required this.favoritesProvider,
   });
 
   @override
@@ -416,6 +420,41 @@ class _OutfitGeneratorScreenState
     _random.nextInt(available.length)];
   }
 
+  Future<void> _saveOutfit() async {
+    if (_selectedTop == null ||
+        _selectedBottom == null ||
+        _selectedShoes == null) {
+      return;
+    }
+
+    final outfit = FavoriteOutfit(
+      id: DateTime.now()
+          .microsecondsSinceEpoch
+          .toString(),
+      top: _selectedTop!,
+      bottom: _selectedBottom!,
+      shoes: _selectedShoes!,
+      outerwear: _selectedOuterwear,
+      accessory: _selectedAccessory,
+      createdAt: DateTime.now(),
+    );
+
+    await widget.favoritesProvider.addFavorite(
+      outfit,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Outfit saved to Favorites ❤️',
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasEnoughClothes =
@@ -588,19 +627,9 @@ class _OutfitGeneratorScreenState
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Favorites are coming next ❤️',
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _saveOutfit,
                   icon: const Icon(
-                    Icons.favorite_border,
+                    Icons.favorite,
                   ),
                   label: const Text(
                     'Save',
