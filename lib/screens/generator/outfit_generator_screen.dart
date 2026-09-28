@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -26,16 +25,43 @@ class OutfitGeneratorScreen extends StatefulWidget {
 
 class _OutfitGeneratorScreenState
     extends State<OutfitGeneratorScreen> {
+  ClothingItem? _top;
+  ClothingItem? _bottom;
+  ClothingItem? _shoes;
+  ClothingItem? _outerwear;
+  ClothingItem? _accessory;
+
+  bool _isGenerating = false;
+
   final Random _random = Random();
 
-  ClothingItem? _selectedTop;
-  ClothingItem? _selectedBottom;
-  ClothingItem? _selectedShoes;
-  ClothingItem? _selectedOuterwear;
-  ClothingItem? _selectedAccessory;
+  List<ClothingItem> get _items =>
+      widget.wardrobeProvider.items;
 
-  bool _hasGenerated = false;
-  bool _isSaving = false;
+  List<ClothingItem> get _tops =>
+      _items.where((item) => item.category == 'Tops').toList();
+
+  List<ClothingItem> get _bottoms =>
+      _items.where((item) => item.category == 'Bottoms').toList();
+
+  List<ClothingItem> get _shoes =>
+      _items.where((item) => item.category == 'Shoes').toList();
+
+  List<ClothingItem> get _outerwears =>
+      _items.where((item) => item.category == 'Outerwear').toList();
+
+  List<ClothingItem> get _accessories =>
+      _items.where((item) => item.category == 'Accessories').toList();
+
+  List<ClothingItem> get _selectedItems {
+    return [
+      _top,
+      _bottom,
+      _shoes,
+      _outerwear,
+      _accessory,
+    ].whereType<ClothingItem>().toList();
+  }
 
   @override
   void initState() {
@@ -46,39 +72,9 @@ class _OutfitGeneratorScreenState
     });
   }
 
-  List<ClothingItem> get _tops {
-    return widget.wardrobeProvider.getByCategory('Tops');
-  }
-
-  List<ClothingItem> get _bottoms {
-    return widget.wardrobeProvider.getByCategory('Bottoms');
-  }
-
-  List<ClothingItem> get _shoes {
-    return widget.wardrobeProvider.getByCategory('Shoes');
-  }
-
-  List<ClothingItem> get _outerwear {
-    return widget.wardrobeProvider.getByCategory('Outerwear');
-  }
-
-  List<ClothingItem> get _accessories {
-    return widget.wardrobeProvider.getByCategory('Accessories');
-  }
-
-  List<ClothingItem> get _selectedItems {
-    return [
-      _selectedTop,
-      _selectedBottom,
-      _selectedShoes,
-      _selectedOuterwear,
-      _selectedAccessory,
-    ].whereType<ClothingItem>().toList();
-  }
-
-  // ============================================================
+  // ------------------------------------------------------------
   // COLOR MATCHING
-  // ============================================================
+  // ------------------------------------------------------------
 
   int _colorCompatibility(
       String first,
@@ -88,10 +84,10 @@ class _OutfitGeneratorScreenState
     final b = second.toLowerCase().trim();
 
     if (a == b) {
-      return 80;
+      return 100;
     }
 
-    final neutrals = [
+    const neutralColors = [
       'black',
       'white',
       'gray',
@@ -99,163 +95,92 @@ class _OutfitGeneratorScreenState
       'brown',
     ];
 
-    final darkNeutrals = [
-      'black',
-      'brown',
-      'gray',
-    ];
-
-    final lightNeutrals = [
-      'white',
-      'beige',
-      'gray',
-    ];
-
-    if (neutrals.contains(a) &&
-        neutrals.contains(b)) {
+    if (neutralColors.contains(a) ||
+        neutralColors.contains(b)) {
       return 95;
     }
 
-    if (neutrals.contains(a) ||
-        neutrals.contains(b)) {
+    const compatiblePairs = {
+      'blue': [
+        'white',
+        'beige',
+        'brown',
+        'gray',
+        'black',
+      ],
+      'red': [
+        'black',
+        'white',
+        'beige',
+        'gray',
+      ],
+      'green': [
+        'white',
+        'beige',
+        'brown',
+        'black',
+      ],
+      'yellow': [
+        'blue',
+        'white',
+        'brown',
+        'gray',
+      ],
+      'pink': [
+        'white',
+        'gray',
+        'black',
+        'beige',
+      ],
+      'purple': [
+        'white',
+        'gray',
+        'black',
+        'beige',
+      ],
+      'orange': [
+        'blue',
+        'white',
+        'brown',
+        'beige',
+      ],
+    };
+
+    if (compatiblePairs[a]?.contains(b) == true ||
+        compatiblePairs[b]?.contains(a) == true) {
       return 90;
-    }
-
-    if ((a == 'blue' && b == 'red') ||
-        (a == 'red' && b == 'blue')) {
-      return 65;
-    }
-
-    if ((a == 'blue' && b == 'green') ||
-        (a == 'green' && b == 'blue')) {
-      return 75;
-    }
-
-    if ((a == 'red' && b == 'green') ||
-        (a == 'green' && b == 'red')) {
-      return 55;
-    }
-
-    if ((a == 'purple' && b == 'yellow') ||
-        (a == 'yellow' && b == 'purple')) {
-      return 75;
-    }
-
-    if ((a == 'orange' && b == 'blue') ||
-        (a == 'blue' && b == 'orange')) {
-      return 75;
-    }
-
-    if ((a == 'pink' && b == 'green') ||
-        (a == 'green' && b == 'pink')) {
-      return 75;
-    }
-
-    if ((a == 'pink' && b == 'blue') ||
-        (a == 'blue' && b == 'pink')) {
-      return 85;
-    }
-
-    if ((a == 'yellow' && b == 'blue') ||
-        (a == 'blue' && b == 'yellow')) {
-      return 85;
-    }
-
-    if ((a == 'orange' && b == 'brown') ||
-        (a == 'brown' && b == 'orange')) {
-      return 85;
-    }
-
-    if (darkNeutrals.contains(a) &&
-        lightNeutrals.contains(b)) {
-      return 95;
-    }
-
-    if (darkNeutrals.contains(b) &&
-        lightNeutrals.contains(a)) {
-      return 95;
     }
 
     return 65;
   }
 
   int _calculateColorScore() {
-    final items = _selectedItems;
+    final selected = _selectedItems;
 
-    if (items.length < 2) {
+    if (selected.length < 2) {
       return 0;
     }
 
     int total = 0;
     int comparisons = 0;
 
-    for (int i = 0; i < items.length; i++) {
-      for (int j = i + 1;
-      j < items.length;
-      j++) {
+    for (int i = 0; i < selected.length; i++) {
+      for (int j = i + 1; j < selected.length; j++) {
         total += _colorCompatibility(
-          items[i].color,
-          items[j].color,
+          selected[i].color,
+          selected[j].color,
         );
 
         comparisons++;
       }
     }
 
-    if (comparisons == 0) {
-      return 0;
-    }
-
     return (total / comparisons).round();
   }
 
-  String _colorMatchText(int score) {
-    if (score >= 90) {
-      return 'Excellent color match ✨';
-    }
-
-    if (score >= 80) {
-      return 'Great color combination';
-    }
-
-    if (score >= 70) {
-      return 'Good color combination';
-    }
-
-    if (score >= 60) {
-      return 'Bold color combination';
-    }
-
-    return 'Try another color combination';
-  }
-
-  Color _colorMatchBackground(int score) {
-    if (score >= 80) {
-      return const Color(0xFFE7F3E8);
-    }
-
-    if (score >= 65) {
-      return const Color(0xFFFFF3D9);
-    }
-
-    return const Color(0xFFF8E3E3);
-  }
-
-  Color _colorMatchTextColor(int score) {
-    if (score >= 80) {
-      return const Color(0xFF47734A);
-    }
-
-    if (score >= 65) {
-      return const Color(0xFF8A651B);
-    }
-
-    return const Color(0xFF9A4C4C);
-  }
-
-  // ============================================================
+  // ------------------------------------------------------------
   // STYLE MATCHING
-  // ============================================================
+  // ------------------------------------------------------------
 
   int _styleCompatibility(
       String first,
@@ -268,24 +193,10 @@ class _OutfitGeneratorScreenState
       return 100;
     }
 
-    final casualStyles = [
+    const casualStyles = [
       'casual',
-      'smart casual',
-    ];
-
-    final formalStyles = [
-      'formal',
-      'smart casual',
-    ];
-
-    final streetStyles = [
       'streetwear',
-      'casual',
-    ];
-
-    final sportStyles = [
       'sport',
-      'casual',
     ];
 
     if (casualStyles.contains(a) &&
@@ -293,136 +204,51 @@ class _OutfitGeneratorScreenState
       return 90;
     }
 
-    if (formalStyles.contains(a) &&
-        formalStyles.contains(b)) {
+    if ((a == 'formal' && b == 'smart casual') ||
+        (a == 'smart casual' && b == 'formal')) {
+      return 85;
+    }
+
+    if ((a == 'casual' && b == 'smart casual') ||
+        (a == 'smart casual' && b == 'casual')) {
+      return 85;
+    }
+
+    if ((a == 'streetwear' && b == 'casual') ||
+        (a == 'casual' && b == 'streetwear')) {
       return 90;
     }
 
-    if (streetStyles.contains(a) &&
-        streetStyles.contains(b)) {
-      return 88;
-    }
-
-    if (sportStyles.contains(a) &&
-        sportStyles.contains(b)) {
-      return 85;
-    }
-
-    if ((a == 'formal' &&
-        b == 'smart casual') ||
-        (a == 'smart casual' &&
-            b == 'formal')) {
-      return 85;
-    }
-
-    if ((a == 'streetwear' &&
-        b == 'sport') ||
-        (a == 'sport' &&
-            b == 'streetwear')) {
-      return 85;
-    }
-
-    if ((a == 'streetwear' &&
-        b == 'smart casual') ||
-        (a == 'smart casual' &&
-            b == 'streetwear')) {
-      return 65;
-    }
-
-    if ((a == 'formal' &&
-        b == 'streetwear') ||
-        (a == 'streetwear' &&
-            b == 'formal')) {
-      return 45;
-    }
-
-    if ((a == 'formal' &&
-        b == 'sport') ||
-        (a == 'sport' &&
-            b == 'formal')) {
-      return 40;
-    }
-
-    return 60;
+    return 65;
   }
 
   int _calculateStyleScore() {
-    final items = _selectedItems;
+    final selected = _selectedItems;
 
-    if (items.length < 2) {
+    if (selected.length < 2) {
       return 0;
     }
 
     int total = 0;
     int comparisons = 0;
 
-    for (int i = 0; i < items.length; i++) {
-      for (int j = i + 1;
-      j < items.length;
-      j++) {
+    for (int i = 0; i < selected.length; i++) {
+      for (int j = i + 1; j < selected.length; j++) {
         total += _styleCompatibility(
-          items[i].style,
-          items[j].style,
+          selected[i].style,
+          selected[j].style,
         );
 
         comparisons++;
       }
     }
 
-    if (comparisons == 0) {
-      return 0;
-    }
-
     return (total / comparisons).round();
   }
 
-  String _styleMatchText(int score) {
-    if (score >= 90) {
-      return 'Excellent style match ✨';
-    }
-
-    if (score >= 80) {
-      return 'Great style combination';
-    }
-
-    if (score >= 70) {
-      return 'Good style combination';
-    }
-
-    if (score >= 60) {
-      return 'Mixed style combination';
-    }
-
-    return 'Styles may clash';
-  }
-
-  Color _styleMatchBackground(int score) {
-    if (score >= 80) {
-      return const Color(0xFFE7F3E8);
-    }
-
-    if (score >= 65) {
-      return const Color(0xFFFFF3D9);
-    }
-
-    return const Color(0xFFF8E3E3);
-  }
-
-  Color _styleMatchTextColor(int score) {
-    if (score >= 80) {
-      return const Color(0xFF47734A);
-    }
-
-    if (score >= 65) {
-      return const Color(0xFF8A651B);
-    }
-
-    return const Color(0xFF9A4C4C);
-  }
-
-  // ============================================================
+  // ------------------------------------------------------------
   // SEASON MATCHING
-  // ============================================================
+  // ------------------------------------------------------------
 
   int _seasonCompatibility(
       String first,
@@ -464,426 +290,298 @@ class _OutfitGeneratorScreenState
   }
 
   int _calculateSeasonScore() {
-    final items = _selectedItems;
+    final selected = _selectedItems;
 
-    if (items.length < 2) {
+    if (selected.length < 2) {
       return 0;
     }
 
     int total = 0;
     int comparisons = 0;
 
-    for (int i = 0; i < items.length; i++) {
-      for (int j = i + 1;
-      j < items.length;
-      j++) {
+    for (int i = 0; i < selected.length; i++) {
+      for (int j = i + 1; j < selected.length; j++) {
         total += _seasonCompatibility(
-          items[i].season,
-          items[j].season,
+          selected[i].season,
+          selected[j].season,
         );
 
         comparisons++;
       }
     }
 
-    if (comparisons == 0) {
-      return 0;
-    }
-
     return (total / comparisons).round();
   }
 
-  String _seasonMatchText(int score) {
+  // ------------------------------------------------------------
+  // SMART OUTFIT SCORE
+  // ------------------------------------------------------------
+
+  int _calculateOverallScore() {
+    final colorScore = _calculateColorScore();
+    final styleScore = _calculateStyleScore();
+    final seasonScore = _calculateSeasonScore();
+
+    return ((colorScore * 0.40) +
+        (styleScore * 0.35) +
+        (seasonScore * 0.25))
+        .round()
+        .clamp(0, 100);
+  }
+
+  String _scoreTitle(int score) {
     if (score >= 90) {
-      return 'Perfect seasonal match 🌤️';
+      return 'Perfect Outfit ✨';
     }
 
     if (score >= 80) {
-      return 'Great seasonal combination';
+      return 'Great Outfit';
     }
 
     if (score >= 70) {
-      return 'Good seasonal combination';
+      return 'Good Outfit';
     }
 
     if (score >= 60) {
-      return 'Mixed seasonal combination';
+      return 'Nice Combination';
     }
 
-    return 'Items are from different seasons';
+    return 'Try Another Shuffle';
   }
 
-  Color _seasonMatchBackground(int score) {
+  String _scoreDescription(int score) {
+    if (score >= 90) {
+      return 'These pieces work beautifully together.';
+    }
+
     if (score >= 80) {
-      return const Color(0xFFE7F3E8);
+      return 'These pieces create a strong combination.';
     }
 
-    if (score >= 65) {
-      return const Color(0xFFFFF3D9);
+    if (score >= 70) {
+      return 'This outfit has a good overall balance.';
     }
 
-    return const Color(0xFFF8E3E3);
+    if (score >= 60) {
+      return 'The outfit works, but another combination may be better.';
+    }
+
+    return 'Try shuffling again to find a stronger combination.';
   }
 
-  Color _seasonMatchTextColor(int score) {
-    if (score >= 80) {
-      return const Color(0xFF47734A);
-    }
-
-    if (score >= 65) {
-      return const Color(0xFF8A651B);
-    }
-
-    return const Color(0xFF9A4C4C);
-  }
-
-  // ============================================================
-  // SMART GENERATION
-  // ============================================================
+  // ------------------------------------------------------------
+  // BEST MATCHING ITEM
+  // ------------------------------------------------------------
 
   ClothingItem? _bestMatchingItem(
-      List<ClothingItem> items,
-      List<ClothingItem> alreadySelected,
-      ) {
-    if (items.isEmpty) {
-      return null;
-    }
-
-    if (items.length == 1) {
-      return items.first;
-    }
-
-    ClothingItem? bestItem;
-    double bestScore = -1;
-
-    for (final candidate in items) {
-      if (alreadySelected.any(
-            (item) => item.id == candidate.id,
-      )) {
-        continue;
-      }
-
-      if (alreadySelected.isEmpty) {
-        if (bestItem == null ||
-            _random.nextBool()) {
-          bestItem = candidate;
-        }
-
-        continue;
-      }
-
-      int totalColor = 0;
-      int totalStyle = 0;
-      int totalSeason = 0;
-
-      for (final selected in alreadySelected) {
-        totalColor += _colorCompatibility(
-          candidate.color,
-          selected.color,
-        );
-
-        totalStyle += _styleCompatibility(
-          candidate.style,
-          selected.style,
-        );
-
-        totalSeason += _seasonCompatibility(
-          candidate.season,
-          selected.season,
-        );
-      }
-
-      final colorScore =
-          totalColor / alreadySelected.length;
-
-      final styleScore =
-          totalStyle / alreadySelected.length;
-
-      final seasonScore =
-          totalSeason / alreadySelected.length;
-
-      final combinedScore =
-          (colorScore * 0.4) +
-              (styleScore * 0.35) +
-              (seasonScore * 0.25);
-
-      if (combinedScore > bestScore) {
-        bestScore = combinedScore;
-        bestItem = candidate;
-      }
-    }
-
-    return bestItem ?? items.first;
-  }
-
-  void _shuffleAll() {
-    setState(() {
-      _selectedTop = _bestMatchingItem(
-        _tops,
-        [],
-      );
-
-      final selectedAfterTop = [
-        if (_selectedTop != null) _selectedTop!,
-      ];
-
-      _selectedBottom = _bestMatchingItem(
-        _bottoms,
-        selectedAfterTop,
-      );
-
-      final selectedAfterBottom = [
-        ...selectedAfterTop,
-        if (_selectedBottom != null) _selectedBottom!,
-      ];
-
-      _selectedShoes = _bestMatchingItem(
-        _shoes,
-        selectedAfterBottom,
-      );
-
-      final selectedAfterShoes = [
-        ...selectedAfterBottom,
-        if (_selectedShoes != null) _selectedShoes!,
-      ];
-
-      _selectedOuterwear = _outerwear.isEmpty
-          ? null
-          : _bestMatchingItem(
-        _outerwear,
-        selectedAfterShoes,
-      );
-
-      final selectedAfterOuterwear = [
-        ...selectedAfterShoes,
-        if (_selectedOuterwear != null)
-          _selectedOuterwear!,
-      ];
-
-      _selectedAccessory = _accessories.isEmpty
-          ? null
-          : _bestMatchingItem(
-        _accessories,
-        selectedAfterOuterwear,
-      );
-
-      _hasGenerated = true;
-    });
-  }
-
-  // ============================================================
-  // INDIVIDUAL SHUFFLE
-  // ============================================================
-
-  ClothingItem? _randomItem(
-      List<ClothingItem> items, {
-        ClothingItem? current,
-      }) {
-    if (items.isEmpty) {
-      return null;
-    }
-
-    if (items.length == 1) {
-      return items.first;
-    }
-
-    final available = items
-        .where(
-          (item) => item.id != current?.id,
-    )
-        .toList();
-
-    if (available.isEmpty) {
-      return items.first;
-    }
-
-    return available[
-    _random.nextInt(available.length)
-    ];
-  }
-
-  ClothingItem? _findBestReplacement(
       List<ClothingItem> candidates,
-      ClothingItem? current,
       ) {
-    final otherItems = _selectedItems
-        .where(
-          (item) => item.id != current?.id,
-    )
-        .toList();
+    if (candidates.isEmpty) {
+      return null;
+    }
 
-    if (otherItems.isEmpty) {
-      return _randomItem(
-        candidates,
-        current: current,
-      );
+    if (_selectedItems.isEmpty) {
+      return candidates[_random.nextInt(candidates.length)];
     }
 
     ClothingItem? bestItem;
-    double bestScore = -1;
+    int bestScore = -1;
 
     for (final candidate in candidates) {
-      if (candidate.id == current?.id) {
-        continue;
-      }
+      int totalScore = 0;
+      int comparisons = 0;
 
-      int totalColor = 0;
-      int totalStyle = 0;
-      int totalSeason = 0;
+      for (final selected in _selectedItems) {
+        if (selected.id == candidate.id) {
+          continue;
+        }
 
-      for (final item in otherItems) {
-        totalColor += _colorCompatibility(
+        final colorScore = _colorCompatibility(
+          selected.color,
           candidate.color,
-          item.color,
         );
 
-        totalStyle += _styleCompatibility(
+        final styleScore = _styleCompatibility(
+          selected.style,
           candidate.style,
-          item.style,
         );
 
-        totalSeason += _seasonCompatibility(
+        final seasonScore = _seasonCompatibility(
+          selected.season,
           candidate.season,
-          item.season,
         );
+
+        final combinedScore =
+            (colorScore * 0.40) +
+                (styleScore * 0.35) +
+                (seasonScore * 0.25);
+
+        totalScore += combinedScore.round();
+        comparisons++;
       }
 
-      final colorScore =
-          totalColor / otherItems.length;
+      final averageScore =
+      comparisons == 0
+          ? 0
+          : (totalScore / comparisons).round();
 
-      final styleScore =
-          totalStyle / otherItems.length;
-
-      final seasonScore =
-          totalSeason / otherItems.length;
-
-      final combinedScore =
-          (colorScore * 0.4) +
-              (styleScore * 0.35) +
-              (seasonScore * 0.25);
-
-      if (combinedScore > bestScore) {
-        bestScore = combinedScore;
+      if (averageScore > bestScore) {
+        bestScore = averageScore;
         bestItem = candidate;
       }
     }
 
-    return bestItem ??
-        _randomItem(
-          candidates,
-          current: current,
-        );
+    return bestItem;
   }
 
-  void _shuffleTop() {
-    if (_tops.isEmpty) {
-      _showMessage(
-        'Add some tops to your wardrobe first.',
-      );
+  // ------------------------------------------------------------
+  // GENERATE OUTFIT
+  // ------------------------------------------------------------
+
+  void _shuffleAll() {
+    if (_items.isEmpty) {
       return;
     }
 
     setState(() {
-      _selectedTop = _findBestReplacement(
+      _isGenerating = true;
+    });
+
+    Future.delayed(
+      const Duration(milliseconds: 350),
+          () {
+        if (!mounted) {
+          return;
+        }
+
+        final tops = List<ClothingItem>.from(_tops);
+        final bottoms = List<ClothingItem>.from(_bottoms);
+        final shoes = List<ClothingItem>.from(_shoes);
+        final outerwears =
+        List<ClothingItem>.from(_outerwears);
+        final accessories =
+        List<ClothingItem>.from(_accessories);
+
+        tops.shuffle(_random);
+
+        _top = tops.isNotEmpty ? tops.first : null;
+
+        _bottom = _bestMatchingItem(bottoms);
+        _shoes = _bestMatchingItem(shoes);
+
+        if (outerwears.isNotEmpty) {
+          _outerwear =
+              _bestMatchingItem(outerwears);
+        } else {
+          _outerwear = null;
+        }
+
+        if (accessories.isNotEmpty) {
+          _accessory =
+              _bestMatchingItem(accessories);
+        } else {
+          _accessory = null;
+        }
+
+        setState(() {
+          _isGenerating = false;
+        });
+      },
+    );
+  }
+
+  ClothingItem? _findBestReplacement(
+      ClothingItem? current,
+      List<ClothingItem> candidates,
+      ) {
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    final filtered = candidates
+        .where((item) => item.id != current?.id)
+        .toList();
+
+    if (filtered.isEmpty) {
+      return current;
+    }
+
+    return _bestMatchingItem(filtered);
+  }
+
+  void _shuffleTop() {
+    setState(() {
+      _top = _findBestReplacement(
+        _top,
         _tops,
-        _selectedTop,
       );
     });
   }
 
   void _shuffleBottom() {
-    if (_bottoms.isEmpty) {
-      _showMessage(
-        'Add some bottoms to your wardrobe first.',
-      );
-      return;
-    }
-
     setState(() {
-      _selectedBottom = _findBestReplacement(
+      _bottom = _findBestReplacement(
+        _bottom,
         _bottoms,
-        _selectedBottom,
       );
     });
   }
 
   void _shuffleShoes() {
-    if (_shoes.isEmpty) {
-      _showMessage(
-        'Add some shoes to your wardrobe first.',
-      );
-      return;
-    }
-
     setState(() {
-      _selectedShoes = _findBestReplacement(
+      _shoes = _findBestReplacement(
         _shoes,
-        _selectedShoes,
+        _shoes,
       );
     });
   }
 
   void _shuffleOuterwear() {
-    if (_outerwear.isEmpty) {
-      _showMessage(
-        'Add some outerwear to your wardrobe first.',
-      );
-      return;
-    }
-
     setState(() {
-      _selectedOuterwear =
-          _findBestReplacement(
-            _outerwear,
-            _selectedOuterwear,
-          );
+      _outerwear = _findBestReplacement(
+        _outerwear,
+        _outerwears,
+      );
     });
   }
 
   void _shuffleAccessory() {
-    if (_accessories.isEmpty) {
-      _showMessage(
-        'Add some accessories to your wardrobe first.',
-      );
-      return;
-    }
-
     setState(() {
-      _selectedAccessory =
-          _findBestReplacement(
-            _accessories,
-            _selectedAccessory,
-          );
+      _accessory = _findBestReplacement(
+        _accessory,
+        _accessories,
+      );
     });
   }
 
-  // ============================================================
-  // SAVE
-  // ============================================================
+  // ------------------------------------------------------------
+  // SAVE OUTFIT
+  // ------------------------------------------------------------
 
   Future<void> _saveOutfit() async {
-    if (_selectedTop == null ||
-        _selectedBottom == null ||
-        _selectedShoes == null) {
-      _showMessage(
-        'You need at least a top, bottom, and shoes.',
+    if (_top == null ||
+        _bottom == null ||
+        _shoes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You need a top, bottom, and shoes to save an outfit.',
+          ),
+        ),
       );
+
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-    });
-
     final outfit = FavoriteOutfit(
       id: DateTime.now()
-          .microsecondsSinceEpoch
+          .millisecondsSinceEpoch
           .toString(),
-      top: _selectedTop!,
-      bottom: _selectedBottom!,
-      shoes: _selectedShoes!,
-      outerwear: _selectedOuterwear,
-      accessory: _selectedAccessory,
+      top: _top!,
+      bottom: _bottom!,
+      shoes: _shoes!,
+      outerwear: _outerwear,
+      accessory: _accessory,
       createdAt: DateTime.now(),
     );
 
@@ -891,56 +589,49 @@ class _OutfitGeneratorScreenState
       outfit,
     );
 
-    if (!mounted) return;
-
-    setState(() {
-      _isSaving = false;
-    });
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
           'Outfit saved to Favorites ❤️',
         ),
-        duration: Duration(seconds: 2),
       ),
     );
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final hasEnoughItems =
-        _tops.isNotEmpty &&
-            _bottoms.isNotEmpty &&
-            _shoes.isNotEmpty;
+    final overallScore = _calculateOverallScore();
+    final colorScore = _calculateColorScore();
+    final styleScore = _calculateStyleScore();
+    final seasonScore = _calculateSeasonScore();
 
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text(
           'Outfit Generator',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        backgroundColor: AppTheme.background,
       ),
-      body: !hasEnoughItems
-          ? _buildMissingItemsState()
+      body: _items.isEmpty
+          ? _buildEmptyState()
           : SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           20,
           10,
           20,
-          35,
+          30,
         ),
         child: Column(
           crossAxisAlignment:
@@ -950,100 +641,127 @@ class _OutfitGeneratorScreenState
 
             const SizedBox(height: 20),
 
-            _buildOutfitPreview(),
+            _buildScoreCard(
+              overallScore,
+              colorScore,
+              styleScore,
+              seasonScore,
+            ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
 
-            _buildColorMatchCard(),
+            _buildOutfitCard(
+              title: 'Top',
+              item: _top,
+              icon: Icons.checkroom_outlined,
+              onShuffle: _shuffleTop,
+            ),
 
-            const SizedBox(height: 12),
+            _buildOutfitCard(
+              title: 'Bottom',
+              item: _bottom,
+              icon: Icons.dry_cleaning_outlined,
+              onShuffle: _shuffleBottom,
+            ),
 
-            _buildStyleMatchCard(),
+            _buildOutfitCard(
+              title: 'Shoes',
+              item: _shoes,
+              icon: Icons.directions_run_outlined,
+              onShuffle: _shuffleShoes,
+            ),
 
-            const SizedBox(height: 12),
-
-            _buildSeasonMatchCard(),
-
-            const SizedBox(height: 22),
-
-            _buildShuffleAgainButton(),
-
-            const SizedBox(height: 22),
-
-            const Text(
-              'Customize your outfit',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight:
-                FontWeight.bold,
-                color:
-                AppTheme.darkText,
+            if (_outerwear != null)
+              _buildOutfitCard(
+                title: 'Outerwear',
+                item: _outerwear,
+                icon: Icons.layers_outlined,
+                onShuffle: _shuffleOuterwear,
               ),
-            ),
 
-            const SizedBox(height: 6),
-
-            const Text(
-              'Shuffle individual pieces while keeping the rest.',
-              style: TextStyle(
-                fontSize: 14,
-                color:
-                AppTheme.grayText,
+            if (_accessory != null)
+              _buildOutfitCard(
+                title: 'Accessory',
+                item: _accessory,
+                icon: Icons.watch_outlined,
+                onShuffle: _shuffleAccessory,
               ),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isGenerating
+                        ? null
+                        : _shuffleAll,
+                    icon: _isGenerating
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child:
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                        : const Icon(
+                      Icons.shuffle,
+                    ),
+                    label: const Text(
+                      'Shuffle Again',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor:
+                      AppTheme.brown,
+                      side: const BorderSide(
+                        color: AppTheme.brown,
+                      ),
+                      padding:
+                      const EdgeInsets.symmetric(
+                        vertical: 15,
+                      ),
+                      shape:
+                      RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(
+                          16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveOutfit,
+                    icon: const Icon(
+                      Icons.favorite_border,
+                    ),
+                    label: const Text(
+                      'Save Outfit',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                      AppTheme.brown,
+                      foregroundColor:
+                      Colors.white,
+                      padding:
+                      const EdgeInsets.symmetric(
+                        vertical: 15,
+                      ),
+                      shape:
+                      RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(
+                          16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 16),
-
-            _buildClothingSection(
-              label: 'Top',
-              item: _selectedTop,
-              onShuffle:
-              _shuffleTop,
-            ),
-
-            const SizedBox(height: 12),
-
-            _buildClothingSection(
-              label: 'Bottom',
-              item: _selectedBottom,
-              onShuffle:
-              _shuffleBottom,
-            ),
-
-            const SizedBox(height: 12),
-
-            _buildClothingSection(
-              label: 'Shoes',
-              item: _selectedShoes,
-              onShuffle:
-              _shuffleShoes,
-            ),
-
-            if (_outerwear.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildClothingSection(
-                label: 'Outerwear',
-                item:
-                _selectedOuterwear,
-                onShuffle:
-                _shuffleOuterwear,
-              ),
-            ],
-
-            if (_accessories.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildClothingSection(
-                label: 'Accessory',
-                item:
-                _selectedAccessory,
-                onShuffle:
-                _shuffleAccessory,
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            _buildSaveButton(),
           ],
         ),
       ),
@@ -1055,528 +773,302 @@ class _OutfitGeneratorScreenState
       crossAxisAlignment:
       CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Shuffle your style ✨',
-          style: TextStyle(
-            fontSize: 27,
-            fontWeight:
-            FontWeight.bold,
-            color:
-            AppTheme.darkText,
-          ),
-        ),
-        const SizedBox(height: 6),
         Text(
-          _hasGenerated
-              ? 'Matched by color, style, and season.'
-              : 'Let StyleShuffle pick an outfit for you.',
-          style: const TextStyle(
-            fontSize: 15,
-            color:
-            AppTheme.grayText,
+          'Your next look',
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium,
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          'A smart combination from your wardrobe.',
+          style: TextStyle(
+            color: AppTheme.grayText,
+            fontSize: 14,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildOutfitPreview() {
-    final items = _selectedItems;
-
+  Widget _buildScoreCard(
+      int overallScore,
+      int colorScore,
+      int styleScore,
+      int seasonScore,
+      ) {
     return Container(
-      padding:
-      const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(26),
-        border: Border.all(
-          color:
-          AppTheme.lightBrown,
-        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Your outfit',
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight:
-                  FontWeight.bold,
-                  color:
-                  AppTheme.darkText,
-                ),
+              const Icon(
+                Icons.auto_awesome,
+                color: AppTheme.brown,
               ),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration:
-                BoxDecoration(
-                  color:
-                  AppTheme.lightBrown,
-                  borderRadius:
-                  BorderRadius.circular(
-                      20),
-                ),
-                child: const Text(
-                  'SMART MATCH',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight:
-                    FontWeight.bold,
-                    color:
-                    AppTheme.brown,
-                  ),
+              const SizedBox(width: 8),
+              const Text(
+                'Smart Outfit Score',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.darkText,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics:
-            const NeverScrollableScrollPhysics(),
-            itemCount:
-            items.length,
-            gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio:
-              0.82,
+          Container(
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.lightBrown,
+              border: Border.all(
+                color: AppTheme.brown,
+                width: 4,
+              ),
             ),
-            itemBuilder:
-                (context, index) {
-              return _buildPreviewItem(
-                items[index],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreviewItem(
-      ClothingItem item,
-      ) {
-    return Container(
-      decoration:
-      BoxDecoration(
-        color:
-        AppTheme.background,
-        borderRadius:
-        BorderRadius.circular(
-            18),
-        border: Border.all(
-          color:
-          AppTheme.lightBrown,
-        ),
-      ),
-      clipBehavior:
-      Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: SizedBox(
-              width:
-              double.infinity,
-              child:
-              item.imagePath != null
-                  ? Image.file(
-                File(
-                  item.imagePath!,
-                ),
-                fit:
-                BoxFit.cover,
-                errorBuilder:
-                    (context,
-                    error,
-                    stackTrace) {
-                  return _buildImagePlaceholder();
-                },
-              )
-                  : _buildImagePlaceholder(),
-            ),
-          ),
-
-          Padding(
-            padding:
-            const EdgeInsets.all(10),
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              mainAxisAlignment:
+              MainAxisAlignment.center,
               children: [
                 Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow:
-                  TextOverflow.ellipsis,
-                  style:
-                  const TextStyle(
-                    fontSize: 14,
-                    fontWeight:
-                    FontWeight.w600,
-                    color:
-                    AppTheme.darkText,
+                  overallScore.toString(),
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.brown,
                   ),
                 ),
-                const SizedBox(
-                  height: 3,
-                ),
-                Text(
-                  '${item.color} • ${item.style}',
-                  maxLines: 1,
-                  overflow:
-                  TextOverflow.ellipsis,
-                  style:
-                  const TextStyle(
-                    fontSize: 11,
-                    color:
-                    AppTheme.grayText,
+                const Text(
+                  '/ 100',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.grayText,
                   ),
                 ),
               ],
             ),
           ),
+
+          const SizedBox(height: 15),
+
+          Text(
+            _scoreTitle(overallScore),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.darkText,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            _scoreDescription(overallScore),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppTheme.grayText,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildScoreBreakdown(
+                  'Color',
+                  colorScore,
+                  Icons.palette_outlined,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildScoreBreakdown(
+                  'Style',
+                  styleScore,
+                  Icons.style_outlined,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildScoreBreakdown(
+                  'Season',
+                  seasonScore,
+                  Icons.wb_sunny_outlined,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildImagePlaceholder() {
+  Widget _buildScoreBreakdown(
+      String title,
+      int score,
+      IconData icon,
+      ) {
     return Container(
-      color:
-      AppTheme.lightBrown,
-      child: const Center(
-        child: Icon(
-          Icons.checkroom_outlined,
-          size: 42,
-          color:
-          AppTheme.brown,
-        ),
+      padding: const EdgeInsets.symmetric(
+        vertical: 12,
+        horizontal: 6,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: AppTheme.brown,
+          ),
+          const SizedBox(height: 5),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.grayText,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '$score',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.darkText,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildColorMatchCard() {
-    final score =
-    _calculateColorScore();
-
-    return _buildMatchCard(
-      score: score,
-      title:
-      _colorMatchText(score),
-      subtitle:
-      'Color compatibility',
-      icon:
-      Icons.palette_outlined,
-      background:
-      _colorMatchBackground(
-          score),
-      textColor:
-      _colorMatchTextColor(
-          score),
-    );
-  }
-
-  Widget _buildStyleMatchCard() {
-    final score =
-    _calculateStyleScore();
-
-    return _buildMatchCard(
-      score: score,
-      title:
-      _styleMatchText(score),
-      subtitle:
-      'Style compatibility',
-      icon:
-      Icons.auto_awesome_outlined,
-      background:
-      _styleMatchBackground(
-          score),
-      textColor:
-      _styleMatchTextColor(
-          score),
-    );
-  }
-
-  Widget _buildSeasonMatchCard() {
-    final score =
-    _calculateSeasonScore();
-
-    return _buildMatchCard(
-      score: score,
-      title:
-      _seasonMatchText(score),
-      subtitle:
-      'Season compatibility',
-      icon:
-      Icons.wb_sunny_outlined,
-      background:
-      _seasonMatchBackground(
-          score),
-      textColor:
-      _seasonMatchTextColor(
-          score),
-    );
-  }
-
-  Widget _buildMatchCard({
-    required int score,
+  Widget _buildOutfitCard({
     required String title,
-    required String subtitle,
+    required ClothingItem? item,
     required IconData icon,
-    required Color background,
-    required Color textColor,
+    required VoidCallback onShuffle,
   }) {
     return Container(
-      width:
-      double.infinity,
-      padding:
-      const EdgeInsets.all(16),
-      decoration:
-      BoxDecoration(
-        color: background,
-        borderRadius:
-        BorderRadius.circular(
-            20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          _buildScoreCircle(
-            score,
-            textColor,
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: AppTheme.background,
+              borderRadius:
+              BorderRadius.circular(14),
+            ),
+            child: item?.imagePath != null
+                ? ClipRRect(
+              borderRadius:
+              BorderRadius.circular(14),
+              child: Image.file(
+                File(item!.imagePath!),
+                fit: BoxFit.cover,
+              ),
+            )
+                : Icon(
+              icon,
+              color: AppTheme.brown,
+              size: 30,
+            ),
           ),
 
-          const SizedBox(
-            width: 14,
-          ),
+          const SizedBox(width: 14),
 
           Expanded(
-            child: Column(
+            child: item == null
+                ? Column(
               crossAxisAlignment:
               CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style:
-                  TextStyle(
-                    fontSize: 15,
-                    fontWeight:
-                    FontWeight.bold,
-                    color:
-                    textColor,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.grayText,
                   ),
                 ),
-                const SizedBox(
-                  height: 3,
-                ),
-                Text(
-                  subtitle,
-                  style:
-                  TextStyle(
-                    fontSize: 12,
-                    color:
-                    textColor,
+                const SizedBox(height: 4),
+                const Text(
+                  'No item available',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkText,
                   ),
                 ),
               ],
-            ),
-          ),
-
-          Icon(
-            icon,
-            color:
-            AppTheme.brown,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScoreCircle(
-      int score,
-      Color textColor,
-      ) {
-    return Container(
-      width: 52,
-      height: 52,
-      decoration:
-      const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          '$score',
-          style:
-          TextStyle(
-            fontSize: 18,
-            fontWeight:
-            FontWeight.bold,
-            color:
-            textColor,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShuffleAgainButton() {
-    return SizedBox(
-      width:
-      double.infinity,
-      height: 54,
-      child:
-      ElevatedButton.icon(
-        onPressed:
-        _shuffleAll,
-        icon: const Icon(
-          Icons.shuffle,
-        ),
-        label:
-        const Text(
-          'Shuffle Again',
-          style:
-          TextStyle(
-            fontSize: 16,
-            fontWeight:
-            FontWeight.bold,
-          ),
-        ),
-        style:
-        ElevatedButton.styleFrom(
-          backgroundColor:
-          AppTheme.brown,
-          foregroundColor:
-          Colors.white,
-          elevation: 0,
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(
-                18),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClothingSection({
-    required String label,
-    required ClothingItem? item,
-    required VoidCallback onShuffle,
-  }) {
-    return Container(
-      padding:
-      const EdgeInsets.all(12),
-      decoration:
-      BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(
-            20),
-        border: Border.all(
-          color:
-          AppTheme.lightBrown,
-        ),
-      ),
-      child: Row(
-        children: [
-          _buildSmallImage(item),
-
-          const SizedBox(
-            width: 12,
-          ),
-
-          Expanded(
-            child: Column(
+            )
+                : Column(
               crossAxisAlignment:
               CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
-                  style:
-                  const TextStyle(
+                  title,
+                  style: const TextStyle(
                     fontSize: 12,
-                    color:
-                    AppTheme.grayText,
+                    color: AppTheme.grayText,
                   ),
                 ),
-                const SizedBox(
-                  height: 3,
-                ),
+                const SizedBox(height: 3),
                 Text(
-                  item?.name ??
-                      'Not selected',
-                  maxLines: 1,
-                  overflow:
-                  TextOverflow.ellipsis,
-                  style:
-                  const TextStyle(
-                    fontSize: 15,
-                    fontWeight:
-                    FontWeight.w600,
-                    color:
-                    AppTheme.darkText,
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkText,
                   ),
                 ),
-                if (item != null) ...[
-                  const SizedBox(
-                    height: 3,
+                const SizedBox(height: 3),
+                Text(
+                  '${item.color} • ${item.style} • ${item.season}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.grayText,
                   ),
-                  Text(
-                    '${item.color} • ${item.style} • ${item.season}',
-                    maxLines: 1,
-                    overflow:
-                    TextOverflow.ellipsis,
-                    style:
-                    const TextStyle(
-                      fontSize: 11,
-                      color:
-                      AppTheme.grayText,
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
           ),
 
-          const SizedBox(
-            width: 8,
-          ),
-
           IconButton(
-            onPressed:
-            onShuffle,
-            tooltip:
-            'Shuffle $label',
-            style:
-            IconButton.styleFrom(
-              backgroundColor:
-              AppTheme.lightBrown,
-              foregroundColor:
-              AppTheme.brown,
-            ),
-            icon:
-            const Icon(
+            onPressed: item == null
+                ? null
+                : onShuffle,
+            icon: const Icon(
               Icons.shuffle,
-              size: 20,
+              color: AppTheme.brown,
             ),
           ),
         ],
@@ -1584,195 +1076,43 @@ class _OutfitGeneratorScreenState
     );
   }
 
-  Widget _buildSmallImage(
-      ClothingItem? item,
-      ) {
-    return ClipRRect(
-      borderRadius:
-      BorderRadius.circular(
-          14),
-      child: SizedBox(
-        width: 64,
-        height: 64,
-        child: item?.imagePath !=
-            null
-            ? Image.file(
-          File(
-            item!.imagePath!,
-          ),
-          fit:
-          BoxFit.cover,
-          errorBuilder:
-              (context,
-              error,
-              stackTrace) {
-            return _buildImagePlaceholder();
-          },
-        )
-            : _buildImagePlaceholder(),
-      ),
-    );
-  }
-
-  Widget _buildSaveButton() {
-    return SizedBox(
-      width:
-      double.infinity,
-      height: 54,
-      child:
-      OutlinedButton.icon(
-        onPressed:
-        _isSaving
-            ? null
-            : _saveOutfit,
-        icon: _isSaving
-            ? const SizedBox(
-          width: 18,
-          height: 18,
-          child:
-          CircularProgressIndicator(
-            strokeWidth: 2,
-          ),
-        )
-            : const Icon(
-          Icons.favorite_border,
-        ),
-        label:
-        Text(
-          _isSaving
-              ? 'Saving...'
-              : 'Save Outfit',
-          style:
-          const TextStyle(
-            fontSize: 16,
-            fontWeight:
-            FontWeight.bold,
-          ),
-        ),
-        style:
-        OutlinedButton.styleFrom(
-          foregroundColor:
-          AppTheme.brown,
-          side:
-          const BorderSide(
-            color:
-            AppTheme.brown,
-          ),
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(
-                18),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMissingItemsState() {
-    final missing = <String>[];
-
-    if (_tops.isEmpty) {
-      missing.add('Top');
-    }
-
-    if (_bottoms.isEmpty) {
-      missing.add('Bottom');
-    }
-
-    if (_shoes.isEmpty) {
-      missing.add('Shoes');
-    }
-
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding:
-        const EdgeInsets.all(30),
+        padding: const EdgeInsets.all(30),
         child: Column(
           mainAxisAlignment:
           MainAxisAlignment.center,
           children: [
             Container(
-              width: 90,
-              height: 90,
-              decoration:
-              BoxDecoration(
-                color:
-                AppTheme.lightBrown,
-                borderRadius:
-                BorderRadius.circular(
-                    30),
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: AppTheme.lightBrown,
+                shape: BoxShape.circle,
               ),
-              child:
-              const Icon(
+              child: const Icon(
                 Icons.checkroom_outlined,
-                size: 45,
-                color:
-                AppTheme.brown,
+                size: 55,
+                color: AppTheme.brown,
               ),
             ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
+            const SizedBox(height: 20),
             const Text(
-              'Your wardrobe needs a few more items',
-              textAlign:
-              TextAlign.center,
-              style:
-              TextStyle(
+              'Your wardrobe is empty',
+              textAlign: TextAlign.center,
+              style: TextStyle(
                 fontSize: 22,
-                fontWeight:
-                FontWeight.bold,
-                color:
-                AppTheme.darkText,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.darkText,
               ),
             ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
-            Text(
-              'Add at least ${missing.join(', ')} to generate an outfit.',
-              textAlign:
-              TextAlign.center,
-              style:
-              const TextStyle(
-                fontSize: 15,
-                color:
-                AppTheme.grayText,
-              ),
-            ),
-
-            const SizedBox(
-              height: 24,
-            ),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                );
-              },
-              style:
-              ElevatedButton.styleFrom(
-                backgroundColor:
-                AppTheme.brown,
-                foregroundColor:
-                Colors.white,
-                elevation: 0,
-                shape:
-                RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.circular(
-                      16),
-                ),
-              ),
-              child:
-              const Text(
-                'Back to Wardrobe',
+            const SizedBox(height: 8),
+            const Text(
+              'Add some clothes first so StyleShuffle can create outfits for you.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.grayText,
+                fontSize: 14,
               ),
             ),
           ],
