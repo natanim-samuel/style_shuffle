@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'providers/favorites_provider.dart';
+import 'providers/planner_provider.dart';
 import 'providers/wardrobe_provider.dart';
 import 'screens/favorites/favorites_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -16,12 +17,15 @@ class StyleShuffleApp extends StatefulWidget {
   const StyleShuffleApp({super.key});
 
   @override
-  State<StyleShuffleApp> createState() => _StyleShuffleAppState();
+  State<StyleShuffleApp> createState() =>
+      _StyleShuffleAppState();
 }
 
-class _StyleShuffleAppState extends State<StyleShuffleApp> {
+class _StyleShuffleAppState
+    extends State<StyleShuffleApp> {
   late final WardrobeProvider wardrobeProvider;
   late final FavoritesProvider favoritesProvider;
+  late final PlannerProvider plannerProvider;
 
   @override
   void initState() {
@@ -29,6 +33,7 @@ class _StyleShuffleAppState extends State<StyleShuffleApp> {
 
     wardrobeProvider = WardrobeProvider();
     favoritesProvider = FavoritesProvider();
+    plannerProvider = PlannerProvider();
 
     _loadData();
   }
@@ -36,12 +41,15 @@ class _StyleShuffleAppState extends State<StyleShuffleApp> {
   Future<void> _loadData() async {
     await wardrobeProvider.loadItems();
     await favoritesProvider.loadFavorites();
+    await plannerProvider.loadPlans();
   }
 
   @override
   void dispose() {
     wardrobeProvider.dispose();
     favoritesProvider.dispose();
+    plannerProvider.dispose();
+
     super.dispose();
   }
 
@@ -54,6 +62,7 @@ class _StyleShuffleAppState extends State<StyleShuffleApp> {
       home: MainNavigationScreen(
         wardrobeProvider: wardrobeProvider,
         favoritesProvider: favoritesProvider,
+        plannerProvider: plannerProvider,
       ),
     );
   }
@@ -62,36 +71,47 @@ class _StyleShuffleAppState extends State<StyleShuffleApp> {
 class MainNavigationScreen extends StatefulWidget {
   final WardrobeProvider wardrobeProvider;
   final FavoritesProvider favoritesProvider;
+  final PlannerProvider plannerProvider;
 
   const MainNavigationScreen({
     super.key,
     required this.wardrobeProvider,
     required this.favoritesProvider,
+    required this.plannerProvider,
   });
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState
+    extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(
-        wardrobeProvider: widget.wardrobeProvider,
+        wardrobeProvider:
+        widget.wardrobeProvider,
+        favoritesProvider:
+        widget.favoritesProvider,
       ),
-
       WardrobeScreen(
-        wardrobeProvider: widget.wardrobeProvider,
+        wardrobeProvider:
+        widget.wardrobeProvider,
       ),
-
       FavoritesScreen(
-        favoritesProvider: widget.favoritesProvider,
+        favoritesProvider:
+        widget.favoritesProvider,
       ),
-
-      const PlannerScreen(),
+      PlannerScreen(
+        favoritesProvider:
+        widget.favoritesProvider,
+        plannerProvider:
+        widget.plannerProvider,
+      ),
     ];
 
     return Scaffold(
@@ -99,7 +119,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: screens,
       ),
-
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
@@ -107,7 +126,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             _currentIndex = index;
           });
         },
-
         destinations: [
           const NavigationDestination(
             icon: Icon(
@@ -118,7 +136,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
             label: 'Home',
           ),
-
           const NavigationDestination(
             icon: Icon(
               Icons.checkroom_outlined,
@@ -128,13 +145,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
             label: 'Wardrobe',
           ),
-
           NavigationDestination(
             icon: _favoriteIcon(false),
             selectedIcon: _favoriteIcon(true),
             label: 'Favorites',
           ),
-
           const NavigationDestination(
             icon: Icon(
               Icons.calendar_month_outlined,
@@ -153,7 +168,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return AnimatedBuilder(
       animation: widget.favoritesProvider,
       builder: (context, child) {
-        final count = widget.favoritesProvider.count;
+        final count =
+            widget.favoritesProvider.count;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -163,26 +179,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ? Icons.favorite
                   : Icons.favorite_border,
             ),
-
             if (count > 0)
               Positioned(
                 right: -9,
                 top: -7,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding:
+                  const EdgeInsets.symmetric(
                     horizontal: 5,
                     vertical: 2,
                   ),
-                  decoration: BoxDecoration(
+                  decoration:
+                  BoxDecoration(
                     color: AppTheme.brown,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                    BorderRadius.circular(
+                      10,
+                    ),
                   ),
                   child: Text(
-                    count > 99 ? '99+' : count.toString(),
+                    count > 99
+                        ? '99+'
+                        : count.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
                 ),
