@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'providers/favorites_provider.dart';
 import 'providers/planner_provider.dart';
 import 'providers/wardrobe_provider.dart';
+import 'providers/wear_history_provider.dart';
 import 'screens/favorites/favorites_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/planner/planner_screen.dart';
 import 'screens/wardrobe/wardrobe_screen.dart';
+import 'screens/wear_history/wear_history_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -14,7 +16,9 @@ void main() {
 }
 
 class StyleShuffleApp extends StatefulWidget {
-  const StyleShuffleApp({super.key});
+  const StyleShuffleApp({
+    super.key,
+  });
 
   @override
   State<StyleShuffleApp> createState() =>
@@ -26,14 +30,23 @@ class _StyleShuffleAppState
   late final WardrobeProvider wardrobeProvider;
   late final FavoritesProvider favoritesProvider;
   late final PlannerProvider plannerProvider;
+  late final WearHistoryProvider wearHistoryProvider;
 
   @override
   void initState() {
     super.initState();
 
-    wardrobeProvider = WardrobeProvider();
-    favoritesProvider = FavoritesProvider();
-    plannerProvider = PlannerProvider();
+    wardrobeProvider =
+        WardrobeProvider();
+
+    favoritesProvider =
+        FavoritesProvider();
+
+    plannerProvider =
+        PlannerProvider();
+
+    wearHistoryProvider =
+        WearHistoryProvider();
 
     _loadData();
   }
@@ -42,6 +55,7 @@ class _StyleShuffleAppState
     await wardrobeProvider.loadItems();
     await favoritesProvider.loadFavorites();
     await plannerProvider.loadPlans();
+    await wearHistoryProvider.loadHistory();
   }
 
   @override
@@ -49,6 +63,7 @@ class _StyleShuffleAppState
     wardrobeProvider.dispose();
     favoritesProvider.dispose();
     plannerProvider.dispose();
+    wearHistoryProvider.dispose();
 
     super.dispose();
   }
@@ -60,24 +75,32 @@ class _StyleShuffleAppState
       title: 'StyleShuffle',
       theme: AppTheme.lightTheme,
       home: MainNavigationScreen(
-        wardrobeProvider: wardrobeProvider,
-        favoritesProvider: favoritesProvider,
-        plannerProvider: plannerProvider,
+        wardrobeProvider:
+        wardrobeProvider,
+        favoritesProvider:
+        favoritesProvider,
+        plannerProvider:
+        plannerProvider,
+        wearHistoryProvider:
+        wearHistoryProvider,
       ),
     );
   }
 }
 
-class MainNavigationScreen extends StatefulWidget {
+class MainNavigationScreen
+    extends StatefulWidget {
   final WardrobeProvider wardrobeProvider;
   final FavoritesProvider favoritesProvider;
   final PlannerProvider plannerProvider;
+  final WearHistoryProvider wearHistoryProvider;
 
   const MainNavigationScreen({
     super.key,
     required this.wardrobeProvider,
     required this.favoritesProvider,
     required this.plannerProvider,
+    required this.wearHistoryProvider,
   });
 
   @override
@@ -111,6 +134,12 @@ class _MainNavigationScreenState
         widget.favoritesProvider,
         plannerProvider:
         widget.plannerProvider,
+        wearHistoryProvider:
+        widget.wearHistoryProvider,
+      ),
+      WearHistoryScreen(
+        wearHistoryProvider:
+        widget.wearHistoryProvider,
       ),
     ];
 
@@ -119,7 +148,8 @@ class _MainNavigationScreenState
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar:
+      NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
@@ -159,14 +189,22 @@ class _MainNavigationScreenState
             ),
             label: 'Planner',
           ),
+          NavigationDestination(
+            icon: _historyIcon(false),
+            selectedIcon: _historyIcon(true),
+            label: 'History',
+          ),
         ],
       ),
     );
   }
 
-  Widget _favoriteIcon(bool selected) {
+  Widget _favoriteIcon(
+      bool selected,
+      ) {
     return AnimatedBuilder(
-      animation: widget.favoritesProvider,
+      animation:
+      widget.favoritesProvider,
       builder: (context, child) {
         final count =
             widget.favoritesProvider.count;
@@ -201,7 +239,65 @@ class _MainNavigationScreenState
                     count > 99
                         ? '99+'
                         : count.toString(),
-                    style: const TextStyle(
+                    style:
+                    const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _historyIcon(
+      bool selected,
+      ) {
+    return AnimatedBuilder(
+      animation:
+      widget.wearHistoryProvider,
+      builder: (context, child) {
+        final count =
+            widget.wearHistoryProvider
+                .totalWears;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              selected
+                  ? Icons.history
+                  : Icons.history_outlined,
+            ),
+            if (count > 0)
+              Positioned(
+                right: -9,
+                top: -7,
+                child: Container(
+                  padding:
+                  const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration:
+                  BoxDecoration(
+                    color: AppTheme.brown,
+                    borderRadius:
+                    BorderRadius.circular(
+                      10,
+                    ),
+                  ),
+                  child: Text(
+                    count > 99
+                        ? '99+'
+                        : count.toString(),
+                    style:
+                    const TextStyle(
                       color: Colors.white,
                       fontSize: 9,
                       fontWeight:
