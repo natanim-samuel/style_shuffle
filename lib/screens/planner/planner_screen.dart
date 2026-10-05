@@ -22,12 +22,10 @@ class PlannerScreen extends StatefulWidget {
   });
 
   @override
-  State<PlannerScreen> createState() =>
-      _PlannerScreenState();
+  State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState
-    extends State<PlannerScreen> {
+class _PlannerScreenState extends State<PlannerScreen> {
   DateTime _displayedMonth = DateTime.now();
 
   DateTime _selectedDate = DateTime(
@@ -35,6 +33,20 @@ class _PlannerScreenState
     DateTime.now().month,
     DateTime.now().day,
   );
+
+  DateTime _weekStart = _startOfWeek(DateTime.now());
+
+  static DateTime _startOfWeek(DateTime date) {
+    final normalized = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    );
+
+    return normalized.subtract(
+      Duration(days: normalized.weekday - 1),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +57,7 @@ class _PlannerScreenState
         widget.wearHistoryProvider,
       ]),
       builder: (context, child) {
-        final selectedPlan = widget
-            .plannerProvider
+        final selectedPlan = widget.plannerProvider
             .getPlanForDate(_selectedDate);
 
         return Scaffold(
@@ -57,12 +68,35 @@ class _PlannerScreenState
                 fontWeight: FontWeight.bold,
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: _goToToday,
+                child: const Text(
+                  'Today',
+                  style: TextStyle(
+                    color: AppTheme.brown,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           body: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              30,
+            ),
             children: [
+              _buildWeekSummary(),
+              const SizedBox(height: 20),
+              _buildWeekNavigation(),
+              const SizedBox(height: 12),
+              _buildWeeklyPlanner(),
+              const SizedBox(height: 24),
               _buildMonthHeader(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _buildCalendar(),
               const SizedBox(height: 24),
               _buildSelectedDateHeader(),
@@ -72,13 +106,362 @@ class _PlannerScreenState
               ),
               const SizedBox(height: 30),
               _buildUpcomingSection(),
-              const SizedBox(height: 30),
             ],
           ),
         );
       },
     );
   }
+
+  // ------------------------------------------------------------
+  // WEEK SUMMARY
+  // ------------------------------------------------------------
+
+  Widget _buildWeekSummary() {
+    final plans = _getPlansForCurrentWeek();
+
+    final wornCount = plans.where(
+          (plan) {
+        return widget.wearHistoryProvider
+            .isPlannedOutfitMarkedWorn(plan.id);
+      },
+    ).length;
+
+    final remaining = plans.length - wornCount;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.brown,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'This Week',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSummaryItem(
+                  icon: Icons.calendar_month,
+                  value: plans.length.toString(),
+                  label: 'Planned',
+                ),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                  icon: Icons.check_circle_outline,
+                  value: wornCount.toString(),
+                  label: 'Worn',
+                ),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                  icon: Icons.schedule,
+                  value: remaining.toString(),
+                  label: 'Remaining',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: Colors.white70,
+          size: 20,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------
+  // WEEK NAVIGATION
+  // ------------------------------------------------------------
+
+  Widget _buildWeekNavigation() {
+    final weekEnd = _weekStart.add(
+      const Duration(days: 6),
+    );
+
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _weekStart = _weekStart.subtract(
+                const Duration(days: 7),
+              );
+            });
+          },
+          icon: const Icon(Icons.chevron_left),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(
+              '${_formatShortDate(_weekStart)} - '
+                  '${_formatShortDate(weekEnd)}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.darkText,
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _weekStart = _weekStart.add(
+                const Duration(days: 7),
+              );
+            });
+          },
+          icon: const Icon(Icons.chevron_right),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------
+  // WEEKLY PLANNER
+  // ------------------------------------------------------------
+
+  Widget _buildWeeklyPlanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: List.generate(
+          7,
+              (index) {
+            final date = _weekStart.add(
+              Duration(days: index),
+            );
+
+            return _buildWeekDay(date);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekDay(DateTime date) {
+    final plan = widget.plannerProvider
+        .getPlanForDate(date);
+
+    final isSelected = _isSameDay(
+      date,
+      _selectedDate,
+    );
+
+    final isToday = _isSameDay(
+      date,
+      DateTime.now(),
+    );
+
+    final isWorn = plan != null &&
+        widget.wearHistoryProvider
+            .isPlannedOutfitMarkedWorn(plan.id);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDate = date;
+          _displayedMonth = DateTime(
+            date.year,
+            date.month,
+          );
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(
+          bottom: 8,
+        ),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.lightBrown
+              : const Color(0xFFFFFCF8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.brown
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 58,
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _weekdayShort(date),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isToday
+                          ? AppTheme.brown
+                          : AppTheme.grayText,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    date.day.toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.darkText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: plan == null
+                  ? Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightBrown,
+                      borderRadius:
+                      BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: AppTheme.brown,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'No outfit planned',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.grayText,
+                    ),
+                  ),
+                ],
+              )
+                  : Row(
+                children: [
+                  _buildSmallOutfitImage(
+                    plan.outfit.items.first,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Planned Outfit',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                            FontWeight.bold,
+                            color:
+                            AppTheme.darkText,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${plan.outfit.items.length} items',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color:
+                            AppTheme.grayText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isWorn)
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 21,
+                    )
+                  else
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: AppTheme.grayText,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // MONTH CALENDAR
+  // ------------------------------------------------------------
 
   Widget _buildMonthHeader() {
     const months = [
@@ -100,39 +483,52 @@ class _PlannerScreenState
       mainAxisAlignment:
       MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(
-          onPressed: () {
-            setState(() {
-              _displayedMonth = DateTime(
-                _displayedMonth.year,
-                _displayedMonth.month - 1,
-              );
-            });
-          },
-          icon: const Icon(
-            Icons.chevron_left,
-          ),
-        ),
-        Text(
-          '${months[_displayedMonth.month - 1]} ${_displayedMonth.year}',
-          style: const TextStyle(
+        const Text(
+          'Monthly View',
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: AppTheme.darkText,
           ),
         ),
-        IconButton(
-          onPressed: () {
-            setState(() {
-              _displayedMonth = DateTime(
-                _displayedMonth.year,
-                _displayedMonth.month + 1,
-              );
-            });
-          },
-          icon: const Icon(
-            Icons.chevron_right,
-          ),
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _displayedMonth = DateTime(
+                    _displayedMonth.year,
+                    _displayedMonth.month - 1,
+                  );
+                });
+              },
+              icon: const Icon(
+                Icons.chevron_left,
+              ),
+            ),
+            Text(
+              '${months[_displayedMonth.month - 1]} '
+                  '${_displayedMonth.year}',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.darkText,
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _displayedMonth = DateTime(
+                    _displayedMonth.year,
+                    _displayedMonth.month + 1,
+                  );
+                });
+              },
+              icon: const Icon(
+                Icons.chevron_right,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -151,8 +547,7 @@ class _PlannerScreenState
       0,
     ).day;
 
-    final startingWeekday =
-        firstDay.weekday;
+    final startingWeekday = firstDay.weekday;
 
     final totalCells =
         ((startingWeekday - 1 + daysInMonth) / 7)
@@ -173,8 +568,7 @@ class _PlannerScreenState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.grey.shade200,
         ),
@@ -190,10 +584,8 @@ class _PlannerScreenState
                       day,
                       style: const TextStyle(
                         fontSize: 12,
-                        fontWeight:
-                        FontWeight.bold,
-                        color:
-                        AppTheme.grayText,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.grayText,
                       ),
                     ),
                   ),
@@ -214,7 +606,9 @@ class _PlannerScreenState
             ),
             itemBuilder: (context, index) {
               final dayNumber =
-                  index - (startingWeekday - 1) + 1;
+                  index -
+                      (startingWeekday - 1) +
+                      1;
 
               if (dayNumber < 1 ||
                   dayNumber > daysInMonth) {
@@ -236,30 +630,30 @@ class _PlannerScreenState
   }
 
   Widget _buildCalendarDay(DateTime date) {
-    final isSelected =
-    _isSameDay(date, _selectedDate);
+    final isSelected = _isSameDay(
+      date,
+      _selectedDate,
+    );
 
-    final isToday =
-    _isSameDay(date, DateTime.now());
+    final isToday = _isSameDay(
+      date,
+      DateTime.now(),
+    );
 
-    final hasPlan = widget
-        .plannerProvider
-        .hasPlanForDate(date);
-
-    final plan = widget
-        .plannerProvider
+    final plan = widget.plannerProvider
         .getPlanForDate(date);
+
+    final hasPlan = plan != null;
 
     final isWorn = plan != null &&
         widget.wearHistoryProvider
-            .isPlannedOutfitMarkedWorn(
-          plan.id,
-        );
+            .isPlannedOutfitMarkedWorn(plan.id);
 
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedDate = date;
+          _weekStart = _startOfWeek(date);
         });
       },
       child: Container(
@@ -270,8 +664,7 @@ class _PlannerScreenState
               : isToday
               ? AppTheme.lightBrown
               : Colors.transparent,
-          borderRadius:
-          BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisAlignment:
@@ -310,26 +703,34 @@ class _PlannerScreenState
     );
   }
 
+  // ------------------------------------------------------------
+  // SELECTED DATE
+  // ------------------------------------------------------------
+
   Widget _buildSelectedDateHeader() {
     return Row(
       mainAxisAlignment:
       MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          _formatSelectedDate(
-            _selectedDate,
-          ),
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.darkText,
+        Expanded(
+          child: Text(
+            _formatSelectedDate(
+              _selectedDate,
+            ),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.darkText,
+            ),
           ),
         ),
-        TextButton(
-          onPressed: () {
-            _showFavoriteOutfits();
-          },
-          child: const Text(
+        TextButton.icon(
+          onPressed: _showFavoriteOutfits,
+          icon: const Icon(
+            Icons.add,
+            size: 18,
+          ),
+          label: const Text(
             'Choose Outfit',
           ),
         ),
@@ -345,8 +746,7 @@ class _PlannerScreenState
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius:
-          BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: Colors.grey.shade200,
           ),
@@ -387,20 +787,14 @@ class _PlannerScreenState
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () {
-                _showFavoriteOutfits();
-              },
-              icon: const Icon(
-                Icons.add,
-              ),
+              onPressed: _showFavoriteOutfits,
+              icon: const Icon(Icons.add),
               label: const Text(
                 'Plan an Outfit',
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                AppTheme.brown,
-                foregroundColor:
-                Colors.white,
+                backgroundColor: AppTheme.brown,
+                foregroundColor: Colors.white,
                 padding:
                 const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -418,18 +812,31 @@ class _PlannerScreenState
       );
     }
 
-    final isWorn = widget
-        .wearHistoryProvider
-        .isPlannedOutfitMarkedWorn(
-      plan.id,
+    final isWorn = widget.wearHistoryProvider
+        .isPlannedOutfitMarkedWorn(plan.id);
+
+    final recentWearCount =
+    widget.wearHistoryProvider
+        .getWearCountForOutfit(
+      plan.outfit,
     );
+
+    final lastWorn = widget.wearHistoryProvider
+        .getLastWornForOutfit(
+      plan.outfit,
+    );
+
+    final recentlyWorn = lastWorn != null &&
+        DateTime.now()
+            .difference(lastWorn)
+            .inDays <
+            3;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isWorn
               ? Colors.green.shade200
@@ -442,6 +849,16 @@ class _PlannerScreenState
             plan.outfit,
           ),
           const SizedBox(height: 16),
+
+          if (recentlyWorn && !isWorn)
+            _buildRepeatWarning(
+              recentWearCount,
+              lastWorn,
+            ),
+
+          if (recentlyWorn && !isWorn)
+            const SizedBox(height: 12),
+
           Row(
             children: [
               Expanded(
@@ -463,8 +880,7 @@ class _PlannerScreenState
                   ),
                   style:
                   OutlinedButton.styleFrom(
-                    foregroundColor:
-                    isWorn
+                    foregroundColor: isWorn
                         ? Colors.green
                         : AppTheme.brown,
                     side: BorderSide(
@@ -479,18 +895,34 @@ class _PlannerScreenState
                     shape:
                     RoundedRectangleBorder(
                       borderRadius:
-                      BorderRadius.circular(
-                        14,
-                      ),
+                      BorderRadius.circular(14),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  _showFavoriteOutfits(
+                    replacingPlan: plan,
+                  );
+                },
+                tooltip: 'Change outfit',
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                  AppTheme.lightBrown,
+                ),
+                icon: const Icon(
+                  Icons.swap_horiz,
+                  color: AppTheme.brown,
+                ),
+              ),
+              const SizedBox(width: 4),
               IconButton(
                 onPressed: () {
                   _removePlan(plan);
                 },
+                tooltip: 'Remove outfit',
                 style: IconButton.styleFrom(
                   backgroundColor:
                   Colors.red.shade50,
@@ -502,6 +934,7 @@ class _PlannerScreenState
               ),
             ],
           ),
+
           if (isWorn) ...[
             const SizedBox(height: 10),
             const Row(
@@ -515,12 +948,11 @@ class _PlannerScreenState
                 ),
                 SizedBox(width: 6),
                 Text(
-                  'This outfit has been added to Wear History.',
+                  'Added to Wear History',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.green,
-                    fontWeight:
-                    FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -531,10 +963,82 @@ class _PlannerScreenState
     );
   }
 
+  Widget _buildRepeatWarning(
+      int wearCount,
+      DateTime? lastWorn,
+      ) {
+    String message;
+
+    if (lastWorn != null &&
+        _isSameDay(lastWorn, DateTime.now())) {
+      message = 'You wore this outfit today.';
+    } else if (lastWorn != null &&
+        DateTime.now()
+            .difference(lastWorn)
+            .inDays ==
+            1) {
+      message = 'You wore this outfit yesterday.';
+    } else {
+      message =
+      'You wore this outfit recently.';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.orange.shade200,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.orange.shade800,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$message It has been worn $wearCount '
+                  '${wearCount == 1 ? 'time' : 'times'}.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // OUTFIT PREVIEW
+  // ------------------------------------------------------------
+
   Widget _buildOutfitPreview(
       FavoriteOutfit outfit,
       ) {
     final items = outfit.items;
+
+    if (items.isEmpty) {
+      return const SizedBox(
+        height: 180,
+        child: Center(
+          child: Text(
+            'No clothing items',
+            style: TextStyle(
+              color: AppTheme.grayText,
+            ),
+          ),
+        ),
+      );
+    }
 
     return SizedBox(
       height: 210,
@@ -579,8 +1083,7 @@ class _PlannerScreenState
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.lightBrown,
-        borderRadius:
-        BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       clipBehavior: Clip.antiAlias,
       child: imagePath != null &&
@@ -606,8 +1109,7 @@ class _PlannerScreenState
               style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.brown,
-                fontWeight:
-                FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -616,13 +1118,15 @@ class _PlannerScreenState
     );
   }
 
+  // ------------------------------------------------------------
+  // UPCOMING OUTFITS
+  // ------------------------------------------------------------
+
   Widget _buildUpcomingSection() {
-    final plans = widget
-        .plannerProvider
+    final plans = widget.plannerProvider
         .plannedOutfits
         .where(
-          (plan) =>
-      !_dateBeforeToday(plan.date),
+          (plan) => !_dateBeforeToday(plan.date),
     )
         .toList();
 
@@ -651,64 +1155,86 @@ class _PlannerScreenState
               plan.id,
             );
 
-            return Container(
-              margin:
-              const EdgeInsets.only(
-                bottom: 10,
-              ),
-              padding:
-              const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                BorderRadius.circular(18),
-                border: Border.all(
-                  color: Colors.grey.shade200,
+            return GestureDetector(
+              onTap: () {
+                final date =
+                _dateFromKey(plan.date);
+
+                setState(() {
+                  _selectedDate = date;
+                  _displayedMonth = DateTime(
+                    date.year,
+                    date.month,
+                  );
+                  _weekStart =
+                      _startOfWeek(date);
+                });
+              },
+              child: Container(
+                margin:
+                const EdgeInsets.only(
+                  bottom: 10,
                 ),
-              ),
-              child: Row(
-                children: [
-                  _buildSmallOutfitImage(
-                    plan.outfit.items.first,
+                padding:
+                const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                  BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _formatPlanDate(
-                            plan.date,
-                          ),
-                          style:
-                          const TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                            FontWeight.bold,
-                            color:
-                            AppTheme.darkText,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${plan.outfit.items.length} clothing items',
-                          style:
-                          const TextStyle(
-                            fontSize: 12,
-                            color:
-                            AppTheme.grayText,
-                          ),
-                        ),
-                      ],
+                ),
+                child: Row(
+                  children: [
+                    _buildSmallOutfitImage(
+                      plan.outfit.items.first,
                     ),
-                  ),
-                  if (isWorn)
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatPlanDate(
+                              plan.date,
+                            ),
+                            style:
+                            const TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                              FontWeight.bold,
+                              color:
+                              AppTheme.darkText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${plan.outfit.items.length} '
+                                'clothing items',
+                            style:
+                            const TextStyle(
+                              fontSize: 12,
+                              color:
+                              AppTheme.grayText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                ],
+                    if (isWorn)
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                      )
+                    else
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppTheme.grayText,
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -727,8 +1253,7 @@ class _PlannerScreenState
       height: 54,
       decoration: BoxDecoration(
         color: AppTheme.lightBrown,
-        borderRadius:
-        BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14),
       ),
       clipBehavior: Clip.antiAlias,
       child: imagePath != null &&
@@ -745,7 +1270,13 @@ class _PlannerScreenState
     );
   }
 
-  Future<void> _showFavoriteOutfits() async {
+  // ------------------------------------------------------------
+  // FAVORITE OUTFITS
+  // ------------------------------------------------------------
+
+  Future<void> _showFavoriteOutfits({
+    PlannedOutfit? replacingPlan,
+  }) async {
     final favorites =
         widget.favoritesProvider.favorites;
 
@@ -790,9 +1321,11 @@ class _PlannerScreenState
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Choose a Favorite Outfit',
-                style: TextStyle(
+              Text(
+                replacingPlan == null
+                    ? 'Choose a Favorite Outfit'
+                    : 'Change Planned Outfit',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.darkText,
@@ -800,7 +1333,8 @@ class _PlannerScreenState
               ),
               const SizedBox(height: 5),
               Text(
-                'Plan an outfit for ${_formatSelectedDate(_selectedDate)}',
+                'Plan an outfit for '
+                    '${_formatSelectedDate(_selectedDate)}',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppTheme.grayText,
@@ -817,8 +1351,16 @@ class _PlannerScreenState
                     final outfit =
                     favorites[index];
 
+                    final isCurrent =
+                        replacingPlan != null &&
+                            replacingPlan
+                                .outfit.id ==
+                                outfit.id;
+
                     return GestureDetector(
-                      onTap: () async {
+                      onTap: isCurrent
+                          ? null
+                          : () async {
                         Navigator.pop(
                           context,
                         );
@@ -834,83 +1376,118 @@ class _PlannerScreenState
                           return;
                         }
 
-                        ScaffoldMessenger.of(
+                        ScaffoldMessenger
+                            .of(
                           context,
                         ).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Outfit planned successfully.',
+                              replacingPlan ==
+                                  null
+                                  ? 'Outfit planned successfully.'
+                                  : 'Planned outfit changed.',
                             ),
                           ),
                         );
                       },
-                      child: Container(
-                        margin:
-                        const EdgeInsets.only(
-                          bottom: 14,
-                        ),
-                        padding:
-                        const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                          BorderRadius.circular(
-                            20,
+                      child: Opacity(
+                        opacity:
+                        isCurrent ? 0.5 : 1,
+                        child: Container(
+                          margin:
+                          const EdgeInsets.only(
+                            bottom: 14,
                           ),
-                          border: Border.all(
-                            color: Colors
-                                .grey
-                                .shade200,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            _buildSmallOutfitImage(
-                              outfit.items.first,
+                          padding:
+                          const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius:
+                            BorderRadius.circular(
+                              20,
                             ),
-                            const SizedBox(
-                              width: 12,
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
-                                children: [
-                                  const Text(
-                                    'Favorite Outfit',
-                                    style:
-                                    TextStyle(
-                                      fontSize: 15,
-                                      fontWeight:
-                                      FontWeight
-                                          .bold,
-                                      color: AppTheme
-                                          .darkText,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                      height: 4),
-                                  Text(
-                                    '${outfit.items.length} clothing items',
-                                    style:
-                                    const TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme
-                                          .grayText,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons
-                                  .arrow_forward_ios,
-                              size: 16,
+                            border: Border.all(
                               color:
-                              AppTheme.grayText,
+                              isCurrent
+                                  ? AppTheme.brown
+                                  : Colors
+                                  .grey
+                                  .shade200,
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              _buildSmallOutfitImage(
+                                outfit.items.first,
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+                                  children: [
+                                    const Text(
+                                      'Favorite Outfit',
+                                      style:
+                                      TextStyle(
+                                        fontSize: 15,
+                                        fontWeight:
+                                        FontWeight
+                                            .bold,
+                                        color:
+                                        AppTheme
+                                            .darkText,
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 4,
+                                    ),
+                                    Text(
+                                      '${outfit.items.length} '
+                                          'clothing items',
+                                      style:
+                                      const TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme
+                                            .grayText,
+                                      ),
+                                    ),
+                                    if (isCurrent)
+                                      const Padding(
+                                        padding:
+                                        EdgeInsets
+                                            .only(
+                                          top: 3,
+                                        ),
+                                        child: Text(
+                                          'Currently planned',
+                                          style:
+                                          TextStyle(
+                                            fontSize: 11,
+                                            color:
+                                            AppTheme
+                                                .brown,
+                                            fontWeight:
+                                            FontWeight
+                                                .w600,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons
+                                    .arrow_forward_ios,
+                                size: 16,
+                                color:
+                                AppTheme.grayText,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -924,12 +1501,14 @@ class _PlannerScreenState
     );
   }
 
+  // ------------------------------------------------------------
+  // ACTIONS
+  // ------------------------------------------------------------
+
   Future<void> _markPlanAsWorn(
       PlannedOutfit plan,
       ) async {
-    await widget
-        .wearHistoryProvider
-        .markAsWorn(
+    await widget.wearHistoryProvider.markAsWorn(
       outfit: plan.outfit,
       wornAt: DateTime.now(),
       plannedOutfitId: plan.id,
@@ -961,7 +1540,8 @@ class _PlannerScreenState
             'Remove planned outfit?',
           ),
           content: const Text(
-            'This outfit will be removed from this day in your planner.',
+            'This outfit will be removed from '
+                'this day in your planner.',
           ),
           actions: [
             TextButton(
@@ -998,23 +1578,75 @@ class _PlannerScreenState
       return;
     }
 
-    await widget
-        .plannerProvider
+    await widget.plannerProvider
         .removePlan(plan.id);
-  }
 
-  bool _dateBeforeToday(String date) {
-    final parts = date.split('-');
-
-    if (parts.length != 3) {
-      return false;
+    if (!mounted) {
+      return;
     }
 
-    final planDate = DateTime(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Planned outfit removed.',
+        ),
+      ),
+    );
+  }
+
+  void _goToToday() {
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+
+    setState(() {
+      _selectedDate = today;
+      _displayedMonth = DateTime(
+        today.year,
+        today.month,
+      );
+      _weekStart = _startOfWeek(today);
+    });
+  }
+
+  // ------------------------------------------------------------
+  // HELPERS
+  // ------------------------------------------------------------
+
+  List<PlannedOutfit> _getPlansForCurrentWeek() {
+    final plans = <PlannedOutfit>[];
+
+    for (int i = 0; i < 7; i++) {
+      final date = _weekStart.add(
+        Duration(days: i),
+      );
+
+      final plan = widget.plannerProvider
+          .getPlanForDate(date);
+
+      if (plan != null) {
+        plans.add(plan);
+      }
+    }
+
+    return plans;
+  }
+
+  DateTime _dateFromKey(String date) {
+    final parts = date.split('-');
+
+    return DateTime(
       int.parse(parts[0]),
       int.parse(parts[1]),
       int.parse(parts[2]),
     );
+  }
+
+  bool _dateBeforeToday(String date) {
+    final planDate = _dateFromKey(date);
 
     final today = DateTime(
       DateTime.now().year,
@@ -1032,6 +1664,39 @@ class _PlannerScreenState
     return first.year == second.year &&
         first.month == second.month &&
         first.day == second.day;
+  }
+
+  String _weekdayShort(DateTime date) {
+    const weekdays = [
+      'MON',
+      'TUE',
+      'WED',
+      'THU',
+      'FRI',
+      'SAT',
+      'SUN',
+    ];
+
+    return weekdays[date.weekday - 1];
+  }
+
+  String _formatShortDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${months[date.month - 1]} ${date.day}';
   }
 
   String _formatSelectedDate(
@@ -1062,21 +1727,14 @@ class _PlannerScreenState
       'December',
     ];
 
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
+    return '${weekdays[date.weekday - 1]}, '
+        '${months[date.month - 1]} ${date.day}';
   }
 
   String _formatPlanDate(
       String date,
       ) {
-    final parts = date.split('-');
-
-    if (parts.length != 3) {
-      return date;
-    }
-
-    final year = int.parse(parts[0]);
-    final month = int.parse(parts[1]);
-    final day = int.parse(parts[2]);
+    final parsedDate = _dateFromKey(date);
 
     const months = [
       'January',
@@ -1093,6 +1751,8 @@ class _PlannerScreenState
       'December',
     ];
 
-    return '${months[month - 1]} $day, $year';
+    return '${months[parsedDate.month - 1]} '
+        '${parsedDate.day}, '
+        '${parsedDate.year}';
   }
 }
