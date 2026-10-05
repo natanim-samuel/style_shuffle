@@ -117,6 +117,7 @@ class _MainNavigationScreenState
     final screens = [
       HomeScreen(
         wardrobeProvider: widget.wardrobeProvider,
+        favoritesProvider: widget.favoritesProvider,
       ),
       WardrobeScreen(
         wardrobeProvider:
