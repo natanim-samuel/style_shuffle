@@ -24,6 +24,9 @@ class _AddClothingScreenState
   final TextEditingController nameController =
   TextEditingController();
 
+  final TextEditingController priceController =
+  TextEditingController();
+
   final ImagePicker imagePicker = ImagePicker();
 
   String selectedCategory = 'Tops';
@@ -75,6 +78,7 @@ class _AddClothingScreenState
   @override
   void dispose() {
     nameController.dispose();
+    priceController.dispose();
     super.dispose();
   }
 
@@ -106,13 +110,30 @@ class _AddClothingScreenState
       return;
     }
 
+    final priceText = priceController.text.trim();
+
+    final price = double.tryParse(priceText) ?? 0;
+
+    if (price < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid price.'),
+        ),
+      );
+
+      return;
+    }
+
     final clothingItem = ClothingItem(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: DateTime.now()
+          .microsecondsSinceEpoch
+          .toString(),
       name: name,
       category: selectedCategory,
       color: selectedColor,
       style: selectedStyle,
       season: selectedSeason,
+      price: price,
       imagePath: imagePath,
       createdAt: DateTime.now(),
     );
@@ -129,7 +150,9 @@ class _AddClothingScreenState
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Clothing added to your wardrobe! 👕'),
+        content: Text(
+          'Clothing added to your wardrobe! 👕',
+        ),
       ),
     );
   }
@@ -140,47 +163,37 @@ class _AddClothingScreenState
       appBar: AppBar(
         title: const Text('Add Clothing'),
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
           children: [
             Center(
               child: GestureDetector(
                 onTap: pickImage,
-
                 child: Container(
                   width: 180,
                   height: 180,
-
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4ECE6),
-
                     borderRadius:
                     BorderRadius.circular(24),
-
                     border: Border.all(
                       color: const Color(0xFFE4D7CD),
                     ),
                   ),
-
                   child: imagePath == null
                       ? const Column(
                     mainAxisAlignment:
                     MainAxisAlignment.center,
-
                     children: [
                       Icon(
                         Icons.add_a_photo_outlined,
                         size: 42,
                         color: Color(0xFF8A817C),
                       ),
-
                       SizedBox(height: 12),
-
                       Text(
                         'Add Photo',
                         style: TextStyle(
@@ -195,7 +208,6 @@ class _AddClothingScreenState
                       : ClipRRect(
                     borderRadius:
                     BorderRadius.circular(24),
-
                     child: Image.file(
                       File(imagePath!),
                       width: 180,
@@ -221,27 +233,60 @@ class _AddClothingScreenState
 
             TextField(
               controller: nameController,
-
               decoration: InputDecoration(
                 hintText: 'Example: White T-Shirt',
-
                 filled: true,
-
                 fillColor: Colors.white,
-
                 border: OutlineInputBorder(
                   borderRadius:
                   BorderRadius.circular(14),
-
                   borderSide: const BorderSide(
                     color: Color(0xFFEDE5DE),
                   ),
                 ),
-
                 enabledBorder: OutlineInputBorder(
                   borderRadius:
                   BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFEDE5DE),
+                  ),
+                ),
+              ),
+            ),
 
+            const SizedBox(height: 24),
+
+            const Text(
+              'Price',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: priceController,
+              keyboardType:
+              const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Example: 1500',
+                prefixText: 'ETB ',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius:
+                  BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFEDE5DE),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius:
+                  BorderRadius.circular(14),
                   borderSide: const BorderSide(
                     color: Color(0xFFEDE5DE),
                   ),
@@ -306,14 +351,11 @@ class _AddClothingScreenState
             SizedBox(
               width: double.infinity,
               height: 54,
-
               child: ElevatedButton.icon(
                 onPressed: saveClothing,
-
                 icon: const Icon(
                   Icons.check,
                 ),
-
                 label: const Text(
                   'Add to Wardrobe',
                   style: TextStyle(
@@ -321,13 +363,10 @@ class _AddClothingScreenState
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                   const Color(0xFF5C4033),
-
                   foregroundColor: Colors.white,
-
                   shape: RoundedRectangleBorder(
                     borderRadius:
                     BorderRadius.circular(16),
@@ -350,8 +389,8 @@ class _AddClothingScreenState
     required ValueChanged<String?> onChanged,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
         Text(
           title,
@@ -365,34 +404,26 @@ class _AddClothingScreenState
 
         DropdownButtonFormField<String>(
           initialValue: value,
-
           items: values.map((item) {
             return DropdownMenuItem(
               value: item,
               child: Text(item),
             );
           }).toList(),
-
           onChanged: onChanged,
-
           decoration: InputDecoration(
             filled: true,
-
             fillColor: Colors.white,
-
             border: OutlineInputBorder(
               borderRadius:
               BorderRadius.circular(14),
-
               borderSide: const BorderSide(
                 color: Color(0xFFEDE5DE),
               ),
             ),
-
             enabledBorder: OutlineInputBorder(
               borderRadius:
               BorderRadius.circular(14),
-
               borderSide: const BorderSide(
                 color: Color(0xFFEDE5DE),
               ),
