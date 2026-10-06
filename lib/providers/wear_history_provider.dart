@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/clothing_item.dart';
 import '../models/favorite_outfit.dart';
 import '../models/wear_history.dart';
 
@@ -144,6 +145,70 @@ class WearHistoryProvider extends ChangeNotifier {
     return matching.first.wornAt;
   }
 
+  // ----------------------------------------------------------
+  // CLOTHING ITEM WEAR COUNT
+  // ----------------------------------------------------------
+
+  int getWearCountForItem(
+      ClothingItem item,
+      ) {
+    int count = 0;
+
+    for (final entry in _history) {
+      final items = entry.outfit.items;
+
+      final wasWorn = items.any(
+            (wornItem) => wornItem.id == item.id,
+      );
+
+      if (wasWorn) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  // ----------------------------------------------------------
+  // COST PER WEAR
+  // ----------------------------------------------------------
+
+  double getCostPerWear(
+      ClothingItem item,
+      ) {
+    final wearCount = getWearCountForItem(item);
+
+    if (wearCount == 0) {
+      return item.price;
+    }
+
+    return item.price / wearCount;
+  }
+
+  // ----------------------------------------------------------
+  // LAST WORN ITEM
+  // ----------------------------------------------------------
+
+  DateTime? getLastWornForItem(
+      ClothingItem item,
+      ) {
+    for (final entry in recentHistory) {
+      final wasWorn = entry.outfit.items.any(
+            (wornItem) => wornItem.id == item.id,
+      );
+
+      if (wasWorn) {
+        return entry.wornAt;
+      }
+    }
+
+    return null;
+  }
+
+  // ----------------------------------------------------------
+  // MOST WORN OUTFITS
+  // ----------------------------------------------------------
+
   List<WearHistory> getMostWornOutfits() {
     final Map<String, List<WearHistory>>
     grouped = {};
@@ -171,6 +236,10 @@ class WearHistoryProvider extends ChangeNotifier {
 
     return result;
   }
+
+  // ----------------------------------------------------------
+  // SAVE HISTORY
+  // ----------------------------------------------------------
 
   Future<void> _saveHistory() async {
     final preferences =
