@@ -4,11 +4,14 @@ import 'providers/favorites_provider.dart';
 import 'providers/planner_provider.dart';
 import 'providers/wardrobe_provider.dart';
 import 'providers/wear_history_provider.dart';
+
 import 'screens/favorites/favorites_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/insights/insights_screen.dart';
 import 'screens/planner/planner_screen.dart';
 import 'screens/wardrobe/wardrobe_screen.dart';
 import 'screens/wear_history/wear_history_screen.dart';
+
 import 'theme/app_theme.dart';
 
 void main() {
@@ -36,17 +39,10 @@ class _StyleShuffleAppState
   void initState() {
     super.initState();
 
-    wardrobeProvider =
-        WardrobeProvider();
-
-    favoritesProvider =
-        FavoritesProvider();
-
-    plannerProvider =
-        PlannerProvider();
-
-    wearHistoryProvider =
-        WearHistoryProvider();
+    wardrobeProvider = WardrobeProvider();
+    favoritesProvider = FavoritesProvider();
+    plannerProvider = PlannerProvider();
+    wearHistoryProvider = WearHistoryProvider();
 
     _loadData();
   }
@@ -75,21 +71,16 @@ class _StyleShuffleAppState
       title: 'StyleShuffle',
       theme: AppTheme.lightTheme,
       home: MainNavigationScreen(
-        wardrobeProvider:
-        wardrobeProvider,
-        favoritesProvider:
-        favoritesProvider,
-        plannerProvider:
-        plannerProvider,
-        wearHistoryProvider:
-        wearHistoryProvider,
+        wardrobeProvider: wardrobeProvider,
+        favoritesProvider: favoritesProvider,
+        plannerProvider: plannerProvider,
+        wearHistoryProvider: wearHistoryProvider,
       ),
     );
   }
 }
 
-class MainNavigationScreen
-    extends StatefulWidget {
+class MainNavigationScreen extends StatefulWidget {
   final WardrobeProvider wardrobeProvider;
   final FavoritesProvider favoritesProvider;
   final PlannerProvider plannerProvider;
@@ -119,25 +110,30 @@ class _MainNavigationScreenState
         wardrobeProvider: widget.wardrobeProvider,
         favoritesProvider: widget.favoritesProvider,
       ),
+
       WardrobeScreen(
-        wardrobeProvider:
-        widget.wardrobeProvider,
+        wardrobeProvider: widget.wardrobeProvider,
       ),
+
       FavoritesScreen(
-        favoritesProvider:
-        widget.favoritesProvider,
+        favoritesProvider: widget.favoritesProvider,
       ),
+
       PlannerScreen(
-        favoritesProvider:
-        widget.favoritesProvider,
-        plannerProvider:
-        widget.plannerProvider,
+        favoritesProvider: widget.favoritesProvider,
+        plannerProvider: widget.plannerProvider,
         wearHistoryProvider:
         widget.wearHistoryProvider,
       ),
+
       WearHistoryScreen(
         wearHistoryProvider:
         widget.wearHistoryProvider,
+      ),
+
+      InsightsScreen(
+        wardrobeProvider:
+        widget.wardrobeProvider,
       ),
     ];
 
@@ -146,14 +142,16 @@ class _MainNavigationScreenState
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar:
-      NavigationBar(
+
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
+
         onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
+
         destinations: [
           const NavigationDestination(
             icon: Icon(
@@ -164,6 +162,7 @@ class _MainNavigationScreenState
             ),
             label: 'Home',
           ),
+
           const NavigationDestination(
             icon: Icon(
               Icons.checkroom_outlined,
@@ -173,11 +172,13 @@ class _MainNavigationScreenState
             ),
             label: 'Wardrobe',
           ),
+
           NavigationDestination(
             icon: _favoriteIcon(false),
             selectedIcon: _favoriteIcon(true),
             label: 'Favorites',
           ),
+
           const NavigationDestination(
             icon: Icon(
               Icons.calendar_month_outlined,
@@ -187,10 +188,21 @@ class _MainNavigationScreenState
             ),
             label: 'Planner',
           ),
+
           NavigationDestination(
             icon: _historyIcon(false),
             selectedIcon: _historyIcon(true),
             label: 'History',
+          ),
+
+          const NavigationDestination(
+            icon: Icon(
+              Icons.insights_outlined,
+            ),
+            selectedIcon: Icon(
+              Icons.insights,
+            ),
+            label: 'Insights',
           ),
         ],
       ),
@@ -201,8 +213,8 @@ class _MainNavigationScreenState
       bool selected,
       ) {
     return AnimatedBuilder(
-      animation:
-      widget.favoritesProvider,
+      animation: widget.favoritesProvider,
+
       builder: (context, child) {
         final count =
             widget.favoritesProvider.count;
@@ -215,6 +227,7 @@ class _MainNavigationScreenState
                   ? Icons.favorite
                   : Icons.favorite_border,
             ),
+
             if (count > 0)
               Positioned(
                 right: -9,
@@ -225,20 +238,16 @@ class _MainNavigationScreenState
                     horizontal: 5,
                     vertical: 2,
                   ),
-                  decoration:
-                  BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTheme.brown,
                     borderRadius:
-                    BorderRadius.circular(
-                      10,
-                    ),
+                    BorderRadius.circular(10),
                   ),
                   child: Text(
                     count > 99
                         ? '99+'
                         : count.toString(),
-                    style:
-                    const TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 9,
                       fontWeight:
@@ -257,12 +266,11 @@ class _MainNavigationScreenState
       bool selected,
       ) {
     return AnimatedBuilder(
-      animation:
-      widget.wearHistoryProvider,
+      animation: widget.wearHistoryProvider,
+
       builder: (context, child) {
         final count =
-            widget.wearHistoryProvider
-                .totalWears;
+            widget.wearHistoryProvider.totalWears;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -272,6 +280,7 @@ class _MainNavigationScreenState
                   ? Icons.history
                   : Icons.history_outlined,
             ),
+
             if (count > 0)
               Positioned(
                 right: -9,
@@ -282,20 +291,16 @@ class _MainNavigationScreenState
                     horizontal: 5,
                     vertical: 2,
                   ),
-                  decoration:
-                  BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTheme.brown,
                     borderRadius:
-                    BorderRadius.circular(
-                      10,
-                    ),
+                    BorderRadius.circular(10),
                   ),
                   child: Text(
                     count > 99
                         ? '99+'
                         : count.toString(),
-                    style:
-                    const TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 9,
                       fontWeight:

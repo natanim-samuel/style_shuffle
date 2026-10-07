@@ -291,9 +291,9 @@ class _WardrobeScreenState
                       MaterialPageRoute(
                         builder: (_) => ClothingDetailsScreen(
                           item: clothes[index],
-                          wardrobeProvider:
-                          widget.wardrobeProvider,
-                        ),
+                          wardrobeProvider: widget.wardrobeProvider,
+                          wearHistoryProvider: wardrobeProvider,
+                        )
                       ),
                     );
                   },
